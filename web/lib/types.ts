@@ -89,6 +89,7 @@ export interface Case {
   created_at: string;
   claimed_at: string | null;
   resolved_at: string | null;
+  conversation_mode?: string;
   notes?: { id: number; author: string; text: string; created_at: string }[];
 }
 

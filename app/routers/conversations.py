@@ -270,3 +270,26 @@ async def assign(
 
 
 __all__ = ["router", "get_conv", "reply_window", "CONV_OPEN", "MODE_BOT"]
+
+
+@router.post("/{conv_id}/summary")
+async def ai_summary(
+    conv_id: int,
+    request: Request,
+    user: StaffUser = Depends(can_act),
+    session: AsyncSession = Depends(get_session),
+):
+    """AI summary for an agent taking over (shown to staff only, never sent)."""
+    from app import llm
+    from app.bot.summary import summarise
+    from app.services import settings_service
+
+    conv = await get_conv(session, conv_id)
+    cfg = await settings_service.load(session)
+    try:
+        res = await summarise(session, conv, cfg.answer_model)
+    except llm.LLMError as e:
+        raise HTTPException(502, f"Summary unavailable: {e}") from e
+    audit(session, user, "conversation.summary", "conversation", conv_id, ip=client_ip(request))
+    await session.commit()
+    return {"summary": res.text, "model": res.model, "cost_idr": round(res.cost_idr, 2)}

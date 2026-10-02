@@ -1,0 +1,123 @@
+# Safety keyword rules (Bahasa Indonesia + English).
+#
+# Matching (app/bot/safety.py) is case- and diacritic-insensitive and word-based:
+# - punctuation and hyphens count as spaces ("muntah-muntah" == "muntah muntah");
+# - a keyword's words must appear in order, with at most 2 other words between
+#   them ("batuk darah sangat banyak" matches "batuk darah banyak");
+# - common suffixes are tolerated ("darahnya", "obatku" match "darah", "obat").
+#
+# These rules ALWAYS run, even when the AI budget is exhausted. Severity:
+# high / emergency -> fixed safety reply, a case for staff, conversation -> HUMAN.
+# The Settings page can override this file (stored in the database).
+
+categories:
+  EMERGENCY:
+    severity: emergency
+    keywords:
+      - batuk darah banyak
+      - muntah darah
+      - sesak napas berat
+      - sesak nafas berat
+      - sesak berat
+      - susah bernapas
+      - susah bernafas
+      - sulit bernapas
+      - sulit bernafas
+      - tidak bisa bernapas
+      - tidak bisa bernafas
+      - gak bisa napas
+      - nyeri dada
+      - sakit dada hebat
+      - dada sakit sekali
+      - pingsan
+      - tidak sadarkan diri
+      - bibir biru
+      - bibir membiru
+      - kejang
+      - coughing up blood
+      - cough up blood
+      - can't breathe
+      - cannot breathe
+      - severe shortness of breath
+      - chest pain
+      - fainted
+      - passed out
+      - blue lips
+
+  SELF_HARM:
+    severity: emergency
+    keywords:
+      - ingin mati
+      - pengen mati
+      - pingin mati
+      - mau mati saja
+      - mau mati aja
+      - lebih baik mati
+      - bunuh diri
+      - menyakiti diri
+      - melukai diri
+      - mengakhiri hidup
+      - akhiri hidup
+      - tidak ingin hidup
+      - gak mau hidup lagi
+      - kill myself
+      - suicide
+      - end my life
+      - hurt myself
+      - self harm
+      - want to die
+
+  ADVERSE_DRUG:
+    severity: high
+    keywords:
+      - mata kuning
+      - kulit kuning
+      - mata dan kulit kuning
+      - mata menguning
+      - kulit menguning
+      - penglihatan kabur
+      - pandangan kabur
+      - mata kabur
+      - ruam parah
+      - ruam kulit parah
+      - ruam di seluruh badan
+      - gatal parah
+      - kulit melepuh
+      - muntah terus
+      - muntah muntah terus
+      - kesemutan berat
+      - tidak bisa mendengar
+      - pendengaran berkurang
+      - yellow eyes
+      - yellow skin
+      - blurred vision
+      - severe rash
+      - keep vomiting
+      - vomiting all the time
+      - severe tingling
+
+  ADHERENCE:
+    severity: high
+    keywords:
+      - berhenti minum obat
+      - berhenti minum obatnya
+      - stop minum obat
+      - gak mau minum obat
+      - tidak mau minum obat
+      - lupa obat berhari hari
+      - lupa minum obat berhari hari
+      - lupa minum obat beberapa hari
+      - lupa minum obat seminggu
+      - obat habis
+      - obatnya habis
+      - mau berhenti pengobatan
+      - ingin berhenti pengobatan
+      - berhenti pengobatan
+      - berhenti berobat
+      - putus obat
+      - stopped taking my medication
+      - stop my treatment
+      - stop taking my medicine
+      - ran out of medicine
+      - ran out of pills
+      - missed my pills for days

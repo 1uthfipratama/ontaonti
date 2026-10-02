@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.logging_setup import setup_logging
-from app.routers import auth, conversations, misc, simulator
+from app.routers import auth, cases, conversations, misc, simulator
 
 log = logging.getLogger("onti.api")
 
@@ -57,5 +57,5 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-for r in (misc, auth, conversations, simulator):
+for r in (misc, auth, conversations, simulator, cases):
     app.include_router(r.router)

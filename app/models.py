@@ -217,3 +217,13 @@ class AuditLog(Base):
     entity_id: Mapped[str] = mapped_column(String(64), default="")
     details: Mapped[dict] = mapped_column(JSON, default=dict)
     ip: Mapped[str] = mapped_column(String(64), default="")
+
+
+class CaseNote(Base):
+    __tablename__ = "case_notes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("staff_users.id", ondelete="SET NULL"))
+    text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
