@@ -48,9 +48,26 @@ async def process_webhook(ctx, channel: str, payload: dict) -> None:
         await run(message_id)
 
 
+async def send_broadcast_recipient(ctx, recipient_id: int) -> None:
+    """One template message. Retryable failures (429/5xx/network) back off and retry."""
+    from app.services.broadcasts import RetryLater, send_one
+
+    for _ in range(settings.broadcast_max_attempts):
+        try:
+            await send_one(recipient_id)
+            return
+        except RetryLater as e:
+            if settings.redis_url:
+                from arq import Retry
+
+                raise Retry(defer=e.delay) from e
+            # in-process (tests): retry straight away
+
+
 JOBS = {
     "handle_inbound": handle_inbound,
     "process_webhook": process_webhook,
+    "send_broadcast_recipient": send_broadcast_recipient,
 }
 
 
@@ -72,6 +89,7 @@ class WorkerSettings:
     on_startup = startup
     max_jobs = settings.worker_max_jobs
     job_timeout = 180
+    max_tries = 6  # arq-level retries (broadcast backoff); other jobs don't raise Retry
     keep_result = 3600  # arq keeps job ids this long: re-enqueues with the same id are dropped
     if settings.redis_url:
         from arq.connections import RedisSettings

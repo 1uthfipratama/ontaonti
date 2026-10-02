@@ -12,6 +12,7 @@ from app.config import settings
 from app.logging_setup import setup_logging
 from app.routers import (
     auth,
+    broadcasts,
     cases,
     contacts,
     conversations,
@@ -68,5 +69,15 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-for r in (misc, auth, conversations, simulator, cases, contacts, settings_router, webhooks):
+for r in (
+    misc,
+    auth,
+    conversations,
+    simulator,
+    cases,
+    contacts,
+    broadcasts,
+    settings_router,
+    webhooks,
+):
     app.include_router(r.router)

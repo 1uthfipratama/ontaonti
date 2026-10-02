@@ -227,3 +227,64 @@ class CaseNote(Base):
     author_id: Mapped[int | None] = mapped_column(ForeignKey("staff_users.id", ondelete="SET NULL"))
     text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+
+class WaTemplate(Base):
+    """WhatsApp message template (synced from the WABA or registered by hand)."""
+
+    __tablename__ = "wa_templates"
+    __table_args__ = (UniqueConstraint("name", "language", name="uq_template_name_lang"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(512))
+    language: Mapped[str] = mapped_column(String(20))
+    category: Mapped[str] = mapped_column(String(30), default="UTILITY")
+    status: Mapped[str] = mapped_column(String(20), default="MANUAL")  # APPROVED | PENDING | ...
+    body_text: Mapped[str] = mapped_column(Text, default="")
+    variable_count: Mapped[int] = mapped_column(Integer, default=0)
+    components: Mapped[list] = mapped_column(JSON, default=list)
+    source: Mapped[str] = mapped_column(String(10), default="manual")  # sync | manual
+    updated_at: Mapped[datetime] = mapped_column(TS, default=utcnow, onupdate=utcnow)
+
+
+class Broadcast(Base):
+    __tablename__ = "broadcasts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    template_id: Mapped[int] = mapped_column(ForeignKey("wa_templates.id"))
+    # One entry per {{n}}: a literal, or "{{name}}" for the contact's name.
+    variables: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(12), default="draft")  # draft|sending|done|cancelled
+    recipient_count: Mapped[int] = mapped_column(Integer, default=0)
+    rate_idr: Mapped[float] = mapped_column(Float, default=0.0)
+    est_cost_idr: Mapped[float] = mapped_column(Float, default=0.0)
+    created_by: Mapped[int | None] = mapped_column(
+        ForeignKey("staff_users.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(TS)
+    finished_at: Mapped[datetime | None] = mapped_column(TS)
+
+
+class BroadcastRecipient(Base):
+    __tablename__ = "broadcast_recipients"
+    __table_args__ = (UniqueConstraint("broadcast_id", "contact_id", name="uq_bc_recipient"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    broadcast_id: Mapped[int] = mapped_column(
+        ForeignKey("broadcasts.id", ondelete="CASCADE"), index=True
+    )
+    contact_id: Mapped[int] = mapped_column(ForeignKey("contacts.id", ondelete="CASCADE"))
+    identity_id: Mapped[int] = mapped_column(
+        ForeignKey("contact_identities.id", ondelete="CASCADE")
+    )
+    # pending | sent | delivered | read | failed | skipped
+    status: Mapped[str] = mapped_column(String(12), default="pending")
+    message_id: Mapped[int | None] = mapped_column(ForeignKey("messages.id", ondelete="SET NULL"))
+    external_id: Mapped[str | None] = mapped_column(String(160), index=True)
+    error: Mapped[str | None] = mapped_column(Text)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    sent_at: Mapped[datetime | None] = mapped_column(TS)
+    delivered_at: Mapped[datetime | None] = mapped_column(TS)
+    read_at: Mapped[datetime | None] = mapped_column(TS)
