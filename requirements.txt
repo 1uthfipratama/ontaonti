@@ -14,6 +14,7 @@ bcrypt==5.0.0
 httpx==0.28.1
 anthropic==1.11.0
 pyyaml==6.0.3
+tzdata==2026.4
 # RAG module (rag/)
 fastembed==0.8.1
 sqlite-vec==0.1.9

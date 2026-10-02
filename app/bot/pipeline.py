@@ -8,6 +8,9 @@ Order matters:
 2. HUMAN mode -> store + notify only (a high/emergency keyword still opens a case)
    + non-text messages get a polite "text only" reply
 3. keyword high/emergency -> fixed safety reply + case + HUMAN
+   then cost controls: per-contact rate limit and daily cap (polite notice once);
+   AI budget (80% -> alert once a month; 100% -> classifier model, or a fixed
+   reply + case with no LLM call at all)
 4. LLM classifier; final severity = max(keyword, classifier); high+ -> step 3
 5. RAG answer (last N turns, fixed k, capped input/output)
 """
@@ -22,7 +25,7 @@ from app.db import SessionLocal
 from app.llm import LLMError
 from app.locks import conversation_lock
 from app.models import Conversation, Message
-from app.services import cases, consent, outbound, settings_service
+from app.services import cases, consent, limits, outbound, settings_service
 from app.services.settings_service import Config
 
 log = logging.getLogger("onti.pipeline")
@@ -112,6 +115,25 @@ async def _handle(session, conv: Conversation, msg: Message) -> None:
         await safety_reply(session, conv, msg, kw, cfg, lang)
         return
 
+    # cost controls (safety keywords have already run)
+    lim = await limits.check(session, contact.id, cfg)
+    if lim.limited:
+        if lim.notify:
+            key = "rate_limit_reply" if lim.kind == "rate" else "daily_cap_reply"
+            await outbound.send_text(session, conv, cfg.text(key, lang), sender_type=SENDER_BOT,
+                                     meta={"limit": lim.kind})  # fmt: skip
+        await events.publish("conversation.updated", conversation_id=conv.id)
+        return
+    budget = await limits.budget(session, cfg)
+    await limits.maybe_alert(session, cfg, budget)
+    if budget.over and cfg["budget_fallback_mode"] == "fixed_reply":
+        await outbound.send_text(session, conv, cfg.text("budget_fallback_reply", lang),
+                                 sender_type=SENDER_BOT, meta={"fallback": "budget"})  # fmt: skip
+        await cases.open_case(session, conv, msg, "low", "BUDGET",
+                              "AI budget exhausted: fixed reply sent", to_human=False)  # fmt: skip
+        return
+    answer_model = cfg.classifier_model if budget.over else cfg.answer_model
+
     # 4. classifier
     if is_text and cfg["classifier_enabled"]:
         cls = await safety.classify(
@@ -126,7 +148,7 @@ async def _handle(session, conv: Conversation, msg: Message) -> None:
             return
 
     # 5. answer
-    await bot_answer(session, conv, msg, cfg, lang, cfg.answer_model)
+    await bot_answer(session, conv, msg, cfg, lang, answer_model)
 
 
 async def safety_reply(session, conv, msg, flag: safety.Flag, cfg: Config, lang: str) -> None:

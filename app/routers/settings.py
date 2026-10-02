@@ -1,6 +1,10 @@
-"""Settings: channel connection status (phase 3); editable runtime settings (phase 5)."""
+"""Settings: editable runtime settings (stored in the DB) and channel status."""
 
-from fastapi import APIRouter, Depends, Request
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import audit
@@ -8,10 +12,150 @@ from app.channels.base import SendError
 from app.config import settings
 from app.db import get_session
 from app.deps import admin_only, client_ip
-from app.models import StaffUser
+from app.models import Setting, StaffUser
 from app.services import settings_service
+from app.services.settings_service import BOOL_KEYS, CHOICES, DEFAULTS, GROUPS, NUMBER_KEYS
 
 router = APIRouter(prefix="/settings", tags=["settings"])
+
+LABELS = {
+    "persona_prompt": "Persona prompt (system prompt for answers)",
+    "model_answer": "Answer model (empty = LLM_MODEL_ANSWER / provider default)",
+    "model_classifier": "Classifier model (empty = LLM_MODEL_CLASSIFIER / provider default)",
+    "history_turns": "Context: last N messages",
+    "retrieval_k": "Passages retrieved per answer (fixed k)",
+    "max_input_chars": "Max user input sent to the LLM (chars)",
+    "max_output_tokens": "Max answer length (tokens)",
+    "max_reply_chars": "Max reply length (chars)",
+    "classifier_enabled": "LLM safety classifier on",
+    "monthly_budget_idr": "Monthly AI budget (IDR, 0 = no limit)",
+    "budget_alert_ratio": "Alert at (fraction of budget, e.g. 0.8)",
+    "budget_fallback_mode": "At 100% of budget",
+    "daily_message_cap": "Per-contact daily message cap",
+    "rate_limit_count": "Rate limit: messages per window",
+    "rate_limit_window_minutes": "Rate limit window (minutes)",
+    "wa_rate_marketing_idr": "WhatsApp marketing template rate (IDR / message, estimate)",
+    "wa_rate_utility_idr": "WhatsApp utility template rate (IDR / message, estimate)",
+    "wa_free_tier_messages": "WhatsApp free-tier allowance shown on the dashboard",
+}
+
+
+TEXT_LABELS = {
+    "safety_emergency": "Safety reply: emergency",
+    "safety_self_harm": "Safety reply: self-harm",
+    "safety_adverse_drug": "Safety reply: medicine side effects",
+    "safety_adherence": "Safety reply: stopping / missing treatment",
+    "safety_other": "Safety reply: other high-risk",
+    "consent_notice": "Privacy / consent notice (first message)",
+    "optout_confirm": "STOP / BERHENTI confirmation",
+    "optin_confirm": "MULAI confirmation",
+    "subscribe_confirm": "LANGGANAN confirmation",
+    "non_text_reply": "Reply to photos, voice notes, stickers",
+    "budget_fallback_reply": "Fixed reply (budget exhausted or bot error)",
+    "daily_cap_reply": "Daily cap reached reply",
+    "rate_limit_reply": "Rate limit reply",
+}
+LANG_SUFFIX = {"_id": " · Bahasa Indonesia", "_en": " · English"}
+
+
+def _label(key: str) -> str:
+    if key in LABELS:
+        return LABELS[key]
+    base, suffix = key[:-3], key[-3:]
+    if base in TEXT_LABELS and suffix in LANG_SUFFIX:
+        return TEXT_LABELS[base] + LANG_SUFFIX[suffix]
+    return key.replace("_", " ").capitalize()
+
+
+def _field(key: str, value: Any, overridden: bool) -> dict:
+    if key in BOOL_KEYS:
+        kind = "bool"
+    elif key in NUMBER_KEYS:
+        kind = "number"
+    elif key in CHOICES:
+        kind = "select"
+    elif key.endswith(("_id", "_en")) or key == "persona_prompt":
+        kind = "textarea"
+    else:
+        kind = "text"
+    return {
+        "key": key,
+        "label": _label(key),
+        "type": kind,
+        "value": value,
+        "default": DEFAULTS[key],
+        "choices": list(CHOICES.get(key, ())),
+        "overridden": overridden,
+    }
+
+
+@router.get("")
+async def get_settings(
+    user: StaffUser = Depends(admin_only), session: AsyncSession = Depends(get_session)
+):
+    cfg = await settings_service.load(session)
+    stored = (await session.execute(select(Setting.key))).scalars().all()
+    overridden = set(stored) & set(DEFAULTS)
+    return {
+        "groups": [
+            {"name": name, "fields": [_field(k, cfg[k], k in overridden) for k in keys]}
+            for name, keys in GROUPS
+        ],
+        "flag_rules": cfg.flag_rules,
+        "flag_rules_overridden": cfg["flag_rules"] is not None,
+    }
+
+
+class SettingsIn(BaseModel):
+    values: dict[str, Any]
+
+
+@router.put("")
+async def update_settings(
+    body: SettingsIn,
+    request: Request,
+    user: StaffUser = Depends(admin_only),
+    session: AsyncSession = Depends(get_session),
+):
+    clean: dict[str, Any] = {}
+    errors = []
+    for key, value in body.values.items():
+        try:
+            clean[key] = settings_service.coerce(key, value)
+        except (ValueError, TypeError) as e:
+            errors.append(f"{key}: {e}")
+    if errors:
+        raise HTTPException(422, "; ".join(errors))
+    for key, value in clean.items():
+        if value == DEFAULTS[key]:
+            await session.execute(delete(Setting).where(Setting.key == key))
+        else:
+            await settings_service.set_value(session, key, value, user.id)
+    # Audit which keys changed (values can be long texts; numbers are logged).
+    audit(session, user, "settings.update", "settings", "", {
+        "keys": sorted(clean),
+        "numbers": {k: v for k, v in clean.items() if k in NUMBER_KEYS or k in CHOICES},
+    }, client_ip(request))  # fmt: skip
+    await session.commit()
+    return await get_settings(user, session)
+
+
+class ResetIn(BaseModel):
+    keys: list[str]
+
+
+@router.post("/reset")
+async def reset_settings(
+    body: ResetIn,
+    request: Request,
+    user: StaffUser = Depends(admin_only),
+    session: AsyncSession = Depends(get_session),
+):
+    keys = [k for k in body.keys if k in DEFAULTS]
+    await session.execute(delete(Setting).where(Setting.key.in_(keys)))
+    audit(session, user, "settings.reset", "settings", "", {"keys": keys}, client_ip(request))
+    await session.commit()
+    return await get_settings(user, session)
 
 
 def _mask(value: str) -> str:

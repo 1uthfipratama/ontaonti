@@ -128,3 +128,27 @@
     @apply font-sans;
   }
 }
+/* Data-viz roles (dashboard). Sequential = one blue ramp; status colours are
+   fixed and always paired with an icon + label. */
+.viz-root {
+  --viz-surface: #fcfcfb;
+  --viz-ink: #0b0b0b;
+  --viz-ink-2: #52514e;
+  --viz-muted: #898781;
+  --viz-grid: #e1e0d9;
+  --viz-seq: #2a78d6;
+  --viz-track: #cde2fb;
+  --viz-good: #0ca30c;
+  --viz-warning: #fab219;
+  --viz-serious: #ec835a;
+  --viz-critical: #d03b3b;
+}
+.dark .viz-root {
+  --viz-surface: #1a1a19;
+  --viz-ink: #ffffff;
+  --viz-ink-2: #c3c2b7;
+  --viz-muted: #898781;
+  --viz-grid: #2c2c2a;
+  --viz-seq: #3987e5;
+  --viz-track: #104281;
+}

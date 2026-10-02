@@ -16,6 +16,7 @@ from app.routers import (
     cases,
     contacts,
     conversations,
+    dashboard,
     misc,
     simulator,
     webhooks,
@@ -77,6 +78,7 @@ for r in (
     cases,
     contacts,
     broadcasts,
+    dashboard,
     settings_router,
     webhooks,
 ):
