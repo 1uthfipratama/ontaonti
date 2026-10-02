@@ -1,8 +1,12 @@
 """What happens to each inbound message (runs in the worker).
 
 Order matters:
+0. STOP / BERHENTI -> opted out (confirm once, then silence); MULAI -> back in.
+   An opted-out contact gets no replies, but keyword flags still alert staff.
 1. keyword safety flags (always, even over budget or in HUMAN mode)
+   + first contact: privacy/consent notice; LANGGANAN -> broadcast opt-in
 2. HUMAN mode -> store + notify only (a high/emergency keyword still opens a case)
+   + non-text messages get a polite "text only" reply
 3. keyword high/emergency -> fixed safety reply + case + HUMAN
 4. LLM classifier; final severity = max(keyword, classifier); high+ -> step 3
 5. RAG answer (last N turns, fixed k, capped input/output)
@@ -18,7 +22,7 @@ from app.db import SessionLocal
 from app.llm import LLMError
 from app.locks import conversation_lock
 from app.models import Conversation, Message
-from app.services import cases, outbound, settings_service
+from app.services import cases, consent, outbound, settings_service
 from app.services.settings_service import Config
 
 log = logging.getLogger("onti.pipeline")
@@ -40,6 +44,34 @@ async def _handle(session, conv: Conversation, msg: Message) -> None:
     text = msg.text or ""
     lang = detect(text)
     is_text = msg.kind == "text"
+    contact = conv.contact
+    cmd = consent.command(text) if is_text else None
+
+    # 0. opt-out / opt-in
+    if cmd == "stop":
+        already = contact.opted_out
+        consent.opt_out(session, contact, conv.channel)
+        await outbound.add_note(session, conv, "Kontak membalas STOP: berhenti menerima pesan")
+        await session.commit()
+        if not already:
+            await outbound.send_text(session, conv, cfg.text("optout_confirm", lang),
+                                     sender_type=SENDER_BOT, meta={"consent": "opt_out"})  # fmt: skip
+        return
+    if contact.opted_out:
+        if cmd == "start":
+            consent.opt_in(session, contact, conv.channel)
+            await outbound.add_note(session, conv, "Kontak membalas MULAI: aktif kembali")
+            await session.commit()
+            await outbound.send_text(session, conv, cfg.text("optin_confirm", lang),
+                                     sender_type=SENDER_BOT, meta={"consent": "opt_in"})  # fmt: skip
+            return
+        kw = safety.keyword_flag(text, cfg.flag_rules) if is_text else safety.NONE
+        if at_least(kw.severity, "high"):  # no reply (they said STOP), but staff must know
+            cases.flag_message(conv, msg, kw)
+            await cases.open_case(session, conv, msg, kw.severity, kw.category or "OTHER",
+                                  f"{kw.reason} (contact opted out)", to_human=False)  # fmt: skip
+        await events.publish("conversation.needs_human", conversation_id=conv.id, message_id=msg.id)
+        return
 
     # 1. keyword rules: free, always on
     kw = safety.keyword_flag(text, cfg.flag_rules) if is_text else safety.NONE
@@ -47,12 +79,32 @@ async def _handle(session, conv: Conversation, msg: Message) -> None:
         cases.flag_message(conv, msg, kw)
         await session.commit()
 
+    # first contact: privacy / consent notice before anything else
+    if not await consent.notice_sent(session, contact.id):
+        consent.record(session, contact, "privacy_notice", "notified", "system", conv.channel)
+        await session.commit()
+        await outbound.send_text(session, conv, cfg.text("consent_notice", lang),
+                                 sender_type=SENDER_BOT, meta={"consent": "notice"})  # fmt: skip
+
+    if cmd == "subscribe":
+        consent.subscribe(session, contact, True, conv.channel, "keyword")
+        await session.commit()
+        await outbound.send_text(session, conv, cfg.text("subscribe_confirm", lang),
+                                 sender_type=SENDER_BOT, meta={"consent": "broadcast"})  # fmt: skip
+        await events.publish("contact.updated", contact_id=contact.id)
+        return
+
     # 2. staff have the conversation: no automated replies
     if conv.mode == MODE_HUMAN:
         if at_least(kw.severity, "high"):
             await cases.open_case(session, conv, msg, kw.severity, kw.category or "OTHER",
                                   kw.reason, to_human=True)  # fmt: skip
         await events.publish("conversation.needs_human", conversation_id=conv.id, message_id=msg.id)
+        return
+
+    if not is_text:
+        await outbound.send_text(session, conv, cfg.text("non_text_reply", lang),
+                                 sender_type=SENDER_BOT, meta={"non_text": msg.kind})  # fmt: skip
         return
 
     # 3. keyword emergency / high

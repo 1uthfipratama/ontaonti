@@ -7,7 +7,7 @@ EN = frozenset(
     """the is are am was were what how why when where who which i my me you your can could do
     does did have has should would will not no yes please hello hi hey thanks thank and to of
     it for with this that about if feel feeling medicine medication pills cough taking take
-    stop stopped want need help doctor sick today""".split()
+    stopped want need help doctor sick today""".split()
 )
 ID = frozenset(
     """yang dan apa apakah saya aku kamu anda tidak ga gak nggak enggak bisa ini itu obat batuk

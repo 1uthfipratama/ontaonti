@@ -18,8 +18,39 @@ async def handle_inbound(ctx, message_id: int) -> None:
     await run(message_id)
 
 
+async def process_webhook(ctx, channel: str, payload: dict) -> None:
+    """Statuses first, then new messages: store, mark read, run the bot."""
+    from app.bot.pipeline import handle_inbound as run
+    from app.channels.base import SendError
+    from app.channels.registry import adapter_for_channel
+    from app.db import SessionLocal
+    from app.services import statuses
+    from app.services.inbound import ingest
+
+    adapter = adapter_for_channel(channel)
+    new_ids: list[int] = []
+    async with SessionLocal() as s:
+        for st in adapter.parse_statuses(payload):
+            await statuses.apply_status(s, st)
+        if hasattr(adapter, "parse_reads"):
+            for user_id, watermark in adapter.parse_reads(payload):
+                await statuses.apply_read_watermark(s, channel, user_id, watermark)
+        for im in adapter.parse_inbound(payload):
+            res = await ingest(s, im)
+            if res is None:
+                continue  # duplicate delivery
+            new_ids.append(res.message.id)
+            try:
+                await adapter.mark_read(im.external_message_id)
+            except SendError as e:
+                log.warning("mark read failed: %s", e)
+    for message_id in new_ids:
+        await run(message_id)
+
+
 JOBS = {
     "handle_inbound": handle_inbound,
+    "process_webhook": process_webhook,
 }
 
 
