@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
@@ -164,10 +164,13 @@ function Composer({ onCreated }: { onCreated: (id: number) => void }) {
   const [est, setEst] = useState<Estimate | null>(null);
   const t = usable.find((x) => String(x.id) === templateId);
 
-  useEffect(() => {
-    setVars(t ? Array.from({ length: t.variable_count }, (_, i) => (i === 0 ? "{{name}}" : "")) : []);
+  function chooseTemplate(id: string) {
+    const next = usable.find((x) => String(x.id) === id);
+    setTemplateId(id);
+    // One input per {{n}}; the first defaults to the contact's name.
+    setVars(next ? Array.from({ length: next.variable_count }, (_, i) => (i === 0 ? "{{name}}" : "")) : []);
     setEst(null);
-  }, [t]);
+  }
 
   async function estimate() {
     try {
@@ -202,7 +205,7 @@ function Composer({ onCreated }: { onCreated: (id: number) => void }) {
               data-testid="bc-template"
               className="w-full"
               value={templateId}
-              onChange={(e) => setTemplateId(e.target.value)}
+              onChange={(e) => chooseTemplate(e.target.value)}
               options={[{ value: "", label: "Choose an approved template…" }, ...usable.map((x) => ({ value: String(x.id), label: `${x.name} (${x.language}, ${x.category})` }))]}
             />
           </div>
@@ -212,7 +215,10 @@ function Composer({ onCreated }: { onCreated: (id: number) => void }) {
               <Label className="text-xs">{`{{${i + 1}}}`}</Label>
               <Input
                 value={v}
-                onChange={(e) => setVars(vars.map((x, j) => (j === i ? e.target.value : x)))}
+                onChange={(e) => {
+                  setVars(vars.map((x, j) => (j === i ? e.target.value : x)));
+                  setEst(null); // estimate/preview must match what gets sent
+                }}
                 placeholder="text, or {{name}} for the contact's name"
               />
             </div>

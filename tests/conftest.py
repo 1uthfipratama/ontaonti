@@ -1,14 +1,19 @@
-"""Test setup: SQLite in memory, no Redis (in-process jobs), fake LLM, mocked Meta.
+"""Test setup: a temporary SQLite file, no Redis (in-process jobs), fake LLM, mocked Meta.
 
 Environment is set before any app import so app.config picks it up (real env
 vars win over .env, so a developer's .env never leaks into tests).
 """
 
 import os
+import tempfile
+from pathlib import Path
+
+# A file (not :memory:) so every session gets its own connection, as on Postgres.
+_DB = Path(tempfile.mkdtemp(prefix="onti-test-")) / "test.db"
 
 os.environ.update(
     {
-        "DATABASE_URL": "sqlite+aiosqlite:///:memory:",
+        "DATABASE_URL": f"sqlite+aiosqlite:///{_DB.as_posix()}",
         "REDIS_URL": "",
         "LLM_PROVIDER": "fake",
         "LLM_API_KEY": "",
