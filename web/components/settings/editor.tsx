@@ -80,13 +80,13 @@ export function SettingsEditor() {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-lg border bg-background/95 p-3 backdrop-blur">
-        <span className="text-sm">{dirty ? "Unsaved changes" : "All changes saved"}</span>
+      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-lg bg-white px-5 py-3 shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
+        <span className="flex-1 text-sm text-muted-foreground">{dirty ? "You have unsaved changes" : "All changes saved"}</span>
         <Button size="sm" onClick={save} disabled={!dirty || busy} data-testid="settings-save">
           Save
         </Button>
         {dirty && (
-          <Button size="sm" variant="outline" onClick={() => { setDraft({}); setRulesDraft(null); }}>
+          <Button size="sm" variant="ghost" onClick={() => { setDraft({}); setRulesDraft(null); }}>
             Discard
           </Button>
         )}
@@ -101,12 +101,12 @@ export function SettingsEditor() {
             {g.fields.map((f) => (
               <div key={f.key} className={f.type === "textarea" ? "space-y-1 md:col-span-2" : "space-y-1"}>
                 <div className="flex items-center gap-2">
-                  <label htmlFor={f.key} className="text-xs font-medium">
+                  <label htmlFor={f.key} className="text-xs font-medium text-muted-foreground">
                     {f.label}
                   </label>
                   {f.overridden && (
-                    <button className="text-[11px] text-primary hover:underline" onClick={() => reset([f.key])}>
-                      reset to default
+                    <button className="text-[11px] font-medium text-primary hover:underline" onClick={() => reset([f.key])}>
+                      Reset to default
                     </button>
                   )}
                 </div>
@@ -149,8 +149,8 @@ export function SettingsEditor() {
         <CardHeader className="flex flex-row items-center">
           <CardTitle className="flex-1 text-sm">Safety keyword rules</CardTitle>
           {data.flag_rules_overridden && (
-            <button className="text-xs text-primary hover:underline" onClick={() => reset(["flag_rules"])}>
-              reset to config/flags.yaml
+            <button className="text-xs font-medium text-primary hover:underline" onClick={() => reset(["flag_rules"])}>
+              Reset to config/flags.yaml
             </button>
           )}
         </CardHeader>
@@ -163,7 +163,7 @@ export function SettingsEditor() {
             {Object.entries(rules.categories).map(([cat, spec]) => (
               <div key={cat} className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-semibold">{cat}</span>
+                  <span className="flex-1 text-xs font-semibold">{cat.charAt(0) + cat.slice(1).toLowerCase().replace("_", " ")}</span>
                   <NativeSelect
                     value={spec.severity}
                     onChange={(e) => editSeverity(cat, e.target.value)}

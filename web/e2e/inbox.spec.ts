@@ -46,5 +46,5 @@ test("an emergency message gets the fixed safety reply and opens a case", async 
   await page.getByTestId("sim-send").click();
   await expect(page.getByTestId("sim-reply-bot").last()).toContainText("hubungi 119");
   await page.goto("/cases");
-  await expect(page.getByTestId("case-list")).toContainText("EMERGENCY");
+  await expect(page.getByTestId("case-list")).toContainText(/emergency/i);
 });

@@ -1,59 +1,56 @@
 import { cn } from "@/lib/utils";
 import type { Channel, Severity } from "@/lib/types";
 
-const CHANNEL_STYLE: Record<Channel, string> = {
-  whatsapp: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
-  messenger: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200",
-  instagram: "bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-200",
-};
+/* Quiet labels instead of coloured pills: channel, mode and status are plain
+   secondary text. Only a real risk flag gets colour (a small dot). */
+
 const CHANNEL_LABEL: Record<Channel, string> = {
   whatsapp: "WhatsApp",
   messenger: "Messenger",
   instagram: "Instagram",
 };
 
+export function channelName(channel: Channel): string {
+  return CHANNEL_LABEL[channel] ?? channel;
+}
+
 export function ChannelBadge({ channel, simulated }: { channel: Channel; simulated?: boolean }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium",
-        CHANNEL_STYLE[channel],
-      )}
-    >
-      {CHANNEL_LABEL[channel] ?? channel}
-      {simulated && <span className="rounded bg-black/10 px-1 text-[10px] dark:bg-white/15">SIM</span>}
+    <span className="text-xs text-muted-foreground">
+      {channelName(channel)}
+      {simulated && " · simulated"}
     </span>
   );
 }
 
-const SEV_STYLE: Record<Severity, string> = {
-  none: "bg-muted text-muted-foreground",
-  low: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
-  high: "bg-orange-200 text-orange-900 dark:bg-orange-900/50 dark:text-orange-100",
-  emergency: "bg-red-600 text-white",
+const SEV_COLOR: Record<Severity, string> = {
+  none: "",
+  low: "bg-[var(--sev-low)]",
+  high: "bg-[var(--sev-high)]",
+  emergency: "bg-[var(--sev-emergency)]",
 };
+const SEV_LABEL: Record<Severity, string> = { none: "", low: "Low", high: "High", emergency: "Emergency" };
+
+export function SeverityDot({ severity, className }: { severity: Severity | null; className?: string }) {
+  if (!severity || severity === "none") return null;
+  return <span className={cn("inline-block size-2 shrink-0 rounded-full", SEV_COLOR[severity], className)} aria-hidden />;
+}
 
 export function SeverityBadge({ severity, category }: { severity: Severity | null; category?: string | null }) {
   if (!severity || severity === "none") return null;
+  let cat = category ? category.toLowerCase().replace("_", " ") : "";
+  if (cat === severity || cat === "other" || cat === "none") cat = "";
   return (
-    <span className={cn("inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase", SEV_STYLE[severity])}>
-      {severity}
-      {category ? ` · ${category.replace("_", " ")}` : ""}
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
+      <SeverityDot severity={severity} />
+      {SEV_LABEL[severity]}
+      {cat && <span className="font-normal text-muted-foreground">· {cat}</span>}
     </span>
   );
 }
 
+/** Only HUMAN mode is worth calling out; bot mode is the default. */
 export function ModeBadge({ mode }: { mode: "BOT" | "HUMAN" }) {
-  return (
-    <span
-      className={cn(
-        "rounded px-1.5 py-0.5 text-[11px] font-medium",
-        mode === "BOT"
-          ? "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200"
-          : "bg-yellow-100 text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-100",
-      )}
-    >
-      {mode === "BOT" ? "Bot" : "Human"}
-    </span>
-  );
+  if (mode !== "HUMAN") return null;
+  return <span className="text-xs font-medium text-primary">Staff handling</span>;
 }

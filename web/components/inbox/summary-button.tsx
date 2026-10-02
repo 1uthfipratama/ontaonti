@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -26,29 +26,26 @@ export function SummaryButton({ conversationId }: { conversationId: number }) {
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={run} disabled={busy} data-testid="summary-button">
+      <Button size="sm" variant="ghost" onClick={run} disabled={busy} data-testid="summary-button">
         <Sparkles /> {busy ? "Summarising…" : "AI summary"}
       </Button>
       {summary && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 p-10" onClick={() => setSummary(null)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[#272b32]/30 p-16" onClick={() => setSummary(null)}>
           <div
-            className="max-w-lg rounded-xl border bg-background p-5 shadow-xl"
+            className="w-full max-w-lg rounded-lg bg-white p-6 shadow-[0_20px_25px_-5px_rgba(39,43,50,0.15)]"
             onClick={(e) => e.stopPropagation()}
             data-testid="summary-dialog"
           >
-            <div className="mb-2 flex items-center gap-2">
-              <Sparkles className="size-4" />
-              <h2 className="font-semibold">AI summary for takeover</h2>
+            <div className="mb-3 flex items-center gap-2">
+              <h2 className="flex-1 text-[15px] font-semibold">Summary for takeover</h2>
+              <button className="rounded p-1 text-muted-foreground hover:bg-muted" onClick={() => setSummary(null)} aria-label="Close">
+                <X className="size-4" />
+              </button>
             </div>
-            <p className="whitespace-pre-wrap text-sm">{summary.summary}</p>
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              {summary.model} · {idr(summary.cost_idr, 2)} · AI-generated, check the thread before acting.
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{summary.summary}</p>
+            <p className="mt-4 text-xs text-muted-foreground">
+              AI-generated with {summary.model} ({idr(summary.cost_idr, 2)}). Check the thread before acting.
             </p>
-            <div className="mt-3 text-right">
-              <Button size="sm" onClick={() => setSummary(null)}>
-                Close
-              </Button>
-            </div>
           </div>
         </div>
       )}

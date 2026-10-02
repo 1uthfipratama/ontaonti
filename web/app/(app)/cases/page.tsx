@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
 
-import { ChannelBadge, SeverityBadge } from "@/components/badges";
+import { channelName, SeverityBadge, SeverityDot } from "@/components/badges";
 import { NativeSelect } from "@/components/native-select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,12 +16,24 @@ import { useCanAct } from "@/lib/session";
 import type { Case } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+const STATUS_LABEL: Record<string, string> = { OPEN: "Unclaimed", CLAIMED: "Claimed", RESOLVED: "Resolved" };
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-sm">{children}</div>
+    </div>
+  );
+}
+
 function CaseDetail({ id }: { id: number }) {
   const { mutate } = useSWRConfig();
   const canAct = useCanAct();
-  const { data: c } = useSWR<Case & { conversation_mode: string }>(`/cases/${id}`);
+  const { data: c } = useSWR<Case>(`/cases/${id}`);
   const [note, setNote] = useState("");
-  const refresh = () => mutate((k) => typeof k === "string" && (k.startsWith("/cases") || k.startsWith("/notifications")));
+  const refresh = () =>
+    mutate((k) => typeof k === "string" && (k.startsWith("/cases") || k.startsWith("/notifications")));
 
   async function act(path: string, json?: unknown) {
     try {
@@ -32,95 +44,91 @@ function CaseDetail({ id }: { id: number }) {
     }
   }
 
-  if (!c) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
+  if (!c) return <div className="bg-white p-6 text-sm text-muted-foreground">Loading…</div>;
   return (
-    <div className="h-full space-y-4 overflow-y-auto p-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-lg font-semibold">Case #{c.id}</h2>
-        <SeverityBadge severity={c.severity} category={c.category} />
-        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{c.status}</span>
-      </div>
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <div className="text-xs text-muted-foreground">Contact</div>
-          <div className="flex items-center gap-2">
-            {c.contact_name} <ChannelBadge channel={c.channel} />
+    <div className="h-full overflow-y-auto bg-white">
+      <div className="flex items-start gap-4 border-b border-border px-6 py-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[15px] font-semibold">Case #{c.id}</h2>
+            <SeverityBadge severity={c.severity} category={c.category} />
+          </div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {STATUS_LABEL[c.status]} · opened {clock(c.created_at)}
           </div>
         </div>
-        <div>
-          <div className="text-xs text-muted-foreground">Opened</div>
-          {clock(c.created_at)}
-        </div>
-        <div>
-          <div className="text-xs text-muted-foreground">Assigned</div>
-          {c.assigned_name ?? "—"}
-        </div>
-        <div>
-          <div className="text-xs text-muted-foreground">Conversation mode</div>
-          {c.conversation_mode}
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link href={`/inbox?c=${c.conversation_id}`}>
+            <Button size="sm" variant="ghost">Open conversation</Button>
+          </Link>
+          {canAct && c.status === "OPEN" && (
+            <Button size="sm" variant="outline" onClick={() => act("/claim")} data-testid="claim-case">
+              Claim
+            </Button>
+          )}
+          {canAct && c.status === "CLAIMED" && (
+            <Button size="sm" variant="ghost" onClick={() => act("/status", { status: "OPEN" })}>
+              Unclaim
+            </Button>
+          )}
+          {canAct && c.status !== "RESOLVED" && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => act("/resolve", { return_to_bot: false })}>
+                Resolve, keep staff mode
+              </Button>
+              <Button size="sm" onClick={() => act("/resolve", { return_to_bot: true })} data-testid="resolve-case">
+                Resolve &amp; return to bot
+              </Button>
+            </>
+          )}
         </div>
       </div>
-      {c.trigger_text && (
-        <div className="rounded-lg border-l-4 border-red-500 bg-muted/50 p-3 text-sm">
-          <div className="mb-1 text-xs text-muted-foreground">Message that triggered it</div>
-          {c.trigger_text}
+
+      <div className="space-y-8 px-6 py-5">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4 lg:grid-cols-4">
+          <Field label="Contact">{c.contact_name}</Field>
+          <Field label="Channel">{channelName(c.channel)}</Field>
+          <Field label="Assigned to">{c.assigned_name ?? "Nobody yet"}</Field>
+          <Field label="Conversation mode">{c.conversation_mode === "HUMAN" ? "Staff handling" : "Bot"}</Field>
         </div>
-      )}
-      <div className="text-xs text-muted-foreground whitespace-pre-wrap">Reason: {c.reason}</div>
-      <div className="flex flex-wrap gap-2">
-        <Link href={`/inbox?c=${c.conversation_id}`}>
-          <Button size="sm" variant="outline">Open conversation</Button>
-        </Link>
-        {canAct && c.status !== "RESOLVED" && (
-          <>
-            {c.status === "OPEN" && (
-              <Button size="sm" onClick={() => act("/claim")} data-testid="claim-case">
-                Claim
-              </Button>
-            )}
-            {c.status === "CLAIMED" && (
-              <Button size="sm" variant="outline" onClick={() => act("/status", { status: "OPEN" })}>
-                Unclaim
-              </Button>
-            )}
-            <Button size="sm" onClick={() => act("/resolve", { return_to_bot: true })} data-testid="resolve-case">
-              Resolve &amp; return to bot
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => act("/resolve", { return_to_bot: false })}>
-              Resolve (stay human)
-            </Button>
-          </>
+
+        {c.trigger_text && (
+          <section>
+            <h3 className="mb-2 text-xs font-semibold text-muted-foreground">Message that raised it</h3>
+            <p className="rounded-lg bg-secondary px-4 py-3 text-sm">{c.trigger_text}</p>
+            <p className="mt-1.5 text-xs text-muted-foreground whitespace-pre-wrap">{c.reason}</p>
+          </section>
         )}
-      </div>
-      <div>
-        <h3 className="mb-2 text-sm font-semibold">Notes</h3>
-        <ul className="space-y-2">
-          {c.notes?.map((n) => (
-            <li key={n.id} className="rounded border p-2 text-sm">
-              <div className="text-[11px] text-muted-foreground">
-                {n.author} · {clock(n.created_at)}
-              </div>
-              <div className="whitespace-pre-wrap">{n.text}</div>
-            </li>
-          ))}
-          {c.notes?.length === 0 && <li className="text-xs text-muted-foreground">No notes yet.</li>}
-        </ul>
-        {canAct && (
-          <div className="mt-2 flex gap-2">
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note…" className="min-h-14" />
-            <Button
-              size="sm"
-              className="self-end"
-              disabled={!note.trim()}
-              onClick={async () => {
-                await act("/notes", { text: note });
-                setNote("");
-              }}
-            >
-              Add
-            </Button>
-          </div>
-        )}
+
+        <section>
+          <h3 className="mb-2 text-xs font-semibold text-muted-foreground">Notes</h3>
+          {c.notes?.length === 0 && <p className="text-sm text-muted-foreground">No notes yet.</p>}
+          <ul className="space-y-3">
+            {c.notes?.map((n) => (
+              <li key={n.id}>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{n.author}</span> · {clock(n.created_at)}
+                </div>
+                <p className="mt-0.5 whitespace-pre-wrap text-sm">{n.text}</p>
+              </li>
+            ))}
+          </ul>
+          {canAct && (
+            <div className="mt-4 flex items-end gap-2">
+              <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note" className="min-h-10" />
+              <Button
+                variant="outline"
+                disabled={!note.trim()}
+                onClick={async () => {
+                  await act("/notes", { text: note });
+                  setNote("");
+                }}
+              >
+                Add note
+              </Button>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
@@ -133,41 +141,44 @@ function Cases() {
   const [status, setStatus] = useState("active");
   const { data } = useSWR<Case[]>(`/cases?status=${status}`);
   return (
-    <div className="grid h-full grid-cols-[24rem_1fr]">
-      <div className="flex flex-col border-r">
-        <div className="flex items-center gap-2 border-b p-3">
-          <h1 className="flex-1 font-semibold">Cases</h1>
+    <div className="grid h-full grid-rows-[minmax(0,1fr)] grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
+      <div className="flex flex-col border-r border-border bg-white">
+        <div className="p-3">
           <NativeSelect
+            aria-label="Status"
+            className="w-full"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             options={[
-              { value: "active", label: "Open + claimed" },
+              { value: "active", label: "Open and claimed" },
               { value: "OPEN", label: "Unclaimed" },
               { value: "CLAIMED", label: "Claimed" },
               { value: "RESOLVED", label: "Resolved" },
-              { value: "all", label: "All" },
+              { value: "all", label: "All cases" },
             ]}
           />
         </div>
-        <div className="flex-1 overflow-y-auto" data-testid="case-list">
-          {data?.length === 0 && <p className="p-3 text-sm text-muted-foreground">No cases. 🎉</p>}
+        <div className="flex-1 overflow-y-auto px-2 pb-2" data-testid="case-list">
+          {data?.length === 0 && <p className="p-3 text-sm text-muted-foreground">No cases.</p>}
           {data?.map((c) => (
             <button
               key={c.id}
               onClick={() => router.push(`/cases?id=${c.id}`)}
               className={cn(
-                "block w-full border-b px-3 py-2 text-left hover:bg-muted/60",
-                selected === c.id && "bg-muted",
+                "block w-full rounded-md px-3 py-2.5 text-left transition-colors hover:bg-muted",
+                selected === c.id && "bg-accent hover:bg-accent",
               )}
             >
               <div className="flex items-center gap-2">
-                <SeverityBadge severity={c.severity} category={c.category} />
-                <span className="ml-auto text-[11px] text-muted-foreground">{timeAgo(c.created_at)}</span>
+                <SeverityDot severity={c.severity} />
+                <span className="flex-1 truncate text-sm font-medium">{c.contact_name}</span>
+                <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span>
               </div>
-              <div className="mt-1 truncate text-sm">{c.contact_name}</div>
-              <div className="truncate text-xs text-muted-foreground">{c.trigger_text}</div>
-              <div className="mt-1 text-[11px] text-muted-foreground">
-                #{c.id} · {c.status}
+              <div className="mt-0.5 truncate text-[13px] text-muted-foreground">{c.trigger_text}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                {[c.severity, c.category.toLowerCase().replace("_", " "), STATUS_LABEL[c.status].toLowerCase()]
+                  .filter((x, i, a) => a.indexOf(x) === i && x !== "other")
+                  .join(" · ")}
                 {c.assigned_name ? ` · ${c.assigned_name}` : ""}
               </div>
             </button>
@@ -177,7 +188,7 @@ function Cases() {
       {selected ? (
         <CaseDetail key={selected} id={selected} />
       ) : (
-        <div className="flex items-center justify-center text-sm text-muted-foreground">Select a case</div>
+        <div className="flex items-center justify-center bg-white text-sm text-muted-foreground">Select a case</div>
       )}
     </div>
   );

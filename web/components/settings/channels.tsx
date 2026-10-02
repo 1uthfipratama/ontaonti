@@ -5,9 +5,9 @@ import useSWR from "swr";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, errorMessage } from "@/lib/api";
 import { clock } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 type ChannelInfo = {
   enabled: boolean;
@@ -15,7 +15,6 @@ type ChannelInfo = {
   webhook_url: string;
   checks: Record<string, string>;
   last_webhook_at: string | null;
-  graph_version?: string;
 };
 type Channels = {
   whatsapp: ChannelInfo;
@@ -25,22 +24,27 @@ type Channels = {
   email_alerts: boolean;
 };
 
-function Dot({ ok, warn }: { ok: boolean; warn?: boolean }) {
-  return <span className={`inline-block size-2 rounded-full ${ok ? "bg-emerald-500" : warn ? "bg-amber-500" : "bg-red-500"}`} />;
+function state(ch: ChannelInfo): { text: string; ok: boolean } {
+  if (!ch.enabled) return { text: "Off", ok: false };
+  return ch.configured ? { text: "Connected", ok: true } : { text: "Not configured", ok: false };
 }
 
 export function ChannelStatus() {
   const { data } = useSWR<Channels>("/settings/channels");
-  const [check, setCheck] = useState<string>("");
+  const [check, setCheck] = useState("");
 
   async function runCheck() {
-    setCheck("checking…");
+    setCheck("Checking…");
     try {
       const r = await api<{ ok: boolean; error?: string; phone?: Record<string, string> }>(
         "/settings/channels/whatsapp/check",
         { method: "POST" },
       );
-      setCheck(r.ok ? `OK: ${r.phone?.display_phone_number ?? ""} ${r.phone?.verified_name ?? ""} (quality ${r.phone?.quality_rating ?? "?"})` : `Failed: ${r.error}`);
+      setCheck(
+        r.ok
+          ? `Token works: ${r.phone?.display_phone_number ?? ""} ${r.phone?.verified_name ?? ""}`
+          : `Failed: ${r.error}`,
+      );
     } catch (e) {
       toast.error(errorMessage(e));
       setCheck("");
@@ -54,55 +58,52 @@ export function ChannelStatus() {
     ["Instagram", data.instagram],
   ];
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {rows.map(([name, ch]) => (
-        <Card key={name} data-testid={`channel-${name.toLowerCase()}`}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Dot ok={ch.enabled && ch.configured} warn={!ch.enabled} />
-              {name}
-              <span className="ml-auto text-xs font-normal text-muted-foreground">
-                {!ch.enabled ? "disabled (feature flag)" : ch.configured ? "configured" : "not configured"}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-xs">
+    <div className="rounded-lg bg-white">
+      {rows.map(([name, ch], i) => {
+        const st = state(ch);
+        const missing = Object.entries(ch.checks).filter(([, v]) => v !== "set").map(([k]) => k);
+        return (
+          <div
+            key={name}
+            data-testid={`channel-${name.toLowerCase()}`}
+            className={cn("grid gap-4 px-5 py-4 md:grid-cols-[10rem_1fr_auto]", i > 0 && "border-t border-[#f0f1f3]")}
+          >
             <div>
-              <div className="text-muted-foreground">Webhook URL</div>
-              <code className="break-all">{ch.webhook_url}</code>
+              <div className="text-sm font-semibold">{name}</div>
+              <div className={cn("mt-0.5 text-xs", st.ok ? "text-[#186f4a]" : "text-muted-foreground")}>{st.text}</div>
             </div>
-            <ul className="space-y-0.5">
-              {Object.entries(ch.checks).map(([k, v]) => (
-                <li key={k} className="flex items-center gap-1.5">
-                  <Dot ok={v === "set"} /> <span className="font-mono">{k}</span>
-                  <span className="text-muted-foreground">{v}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="text-muted-foreground">
-              Last webhook: {ch.last_webhook_at ? clock(ch.last_webhook_at) : "never"}
-            </div>
-            {name === "WhatsApp" && (
-              <div className="space-y-1">
-                <Button size="xs" variant="outline" onClick={runCheck}>
-                  Test token (Graph API)
-                </Button>
-                {check && <p className="break-words">{check}</p>}
+            <div className="min-w-0 space-y-1 text-xs text-muted-foreground">
+              <div>
+                Webhook <code className="break-all text-foreground">{ch.webhook_url}</code>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-      <Card className="md:col-span-3">
-        <CardContent className="flex flex-wrap gap-6 pt-4 text-xs">
-          <span>
-            LLM provider: <b>{data.llm.provider}</b> (key {data.llm.key})
-          </span>
-          <span>Answer model: {data.llm.answer_model}</span>
-          <span>Classifier: {data.llm.classifier_model}</span>
-          <span>Email alerts: {data.email_alerts ? "on" : "off (no SMTP_HOST)"}</span>
-        </CardContent>
-      </Card>
+              {missing.length > 0 && <div>Missing: {missing.join(", ")}</div>}
+              <div>Last webhook: {ch.last_webhook_at ? clock(ch.last_webhook_at) : "never"}</div>
+              {name === "WhatsApp" && check && <div className="text-foreground">{check}</div>}
+            </div>
+            <div>
+              {name === "WhatsApp" && (
+                <Button size="sm" variant="outline" onClick={runCheck}>
+                  Test token
+                </Button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      <div className="grid gap-x-8 gap-y-1 border-t border-[#f0f1f3] px-5 py-4 text-xs text-muted-foreground md:grid-cols-4">
+        <span>
+          LLM: <span className="text-foreground">{data.llm.provider}</span> (key {data.llm.key})
+        </span>
+        <span>
+          Answers: <span className="text-foreground">{data.llm.answer_model}</span>
+        </span>
+        <span>
+          Classifier: <span className="text-foreground">{data.llm.classifier_model}</span>
+        </span>
+        <span>
+          Email alerts: <span className="text-foreground">{data.email_alerts ? "on" : "off"}</span>
+        </span>
+      </div>
     </div>
   );
 }

@@ -16,14 +16,17 @@ export default function AuditPage() {
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="mb-4 flex items-center gap-3">
-        <h1 className="text-lg font-semibold">Audit log</h1>
+        <span className="text-sm text-muted-foreground">Who viewed, replied, changed or sent what.</span>
         <NativeSelect
+          aria-label="Action"
+          className="ml-auto"
           value={action}
           onChange={(e) => setAction(e.target.value)}
           options={ACTIONS.map((a) => ({ value: a, label: a || "All actions" }))}
         />
       </div>
-      {error && <p className="text-sm text-red-600">{error.message}</p>}
+      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      <div className="overflow-hidden rounded-lg bg-white">
       <Table>
         <TableHeader>
           <TableRow>
@@ -50,6 +53,7 @@ export default function AuditPage() {
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
+import { SendHorizontal } from "lucide-react";
 
-import { ChannelBadge, ModeBadge } from "@/components/badges";
+import { channelName } from "@/components/badges";
 import { NativeSelect } from "@/components/native-select";
 import { WaText } from "@/components/wa-text";
 import { Button } from "@/components/ui/button";
@@ -18,15 +19,15 @@ import { cn } from "@/lib/utils";
 
 const SAMPLES: { label: string; text: string; kind?: string }[] = [
   { label: "Normal question", text: "Halo kak, berapa lama sih pengobatan TBC?" },
-  { label: "English", text: "Is TB contagious through sharing plates?" },
-  { label: "Side effect (low)", text: "Kenapa air kencing saya jadi warna oranye setelah minum obat?" },
-  { label: "Risky: adverse drug", text: "Mata dan kulit saya jadi kuning sejak minum obat TBC" },
-  { label: "Risky: emergency", text: "Saya batuk darah banyak dan sesak napas berat" },
-  { label: "Risky: self-harm", text: "Aku capek berobat terus, rasanya ingin mati saja" },
-  { label: "Adherence", text: "Obat saya habis dan saya mau berhenti pengobatan" },
-  { label: "Subscribe", text: "LANGGANAN" },
-  { label: "Opt out", text: "STOP" },
-  { label: "Opt back in", text: "MULAI" },
+  { label: "English question", text: "Is TB contagious through sharing plates?" },
+  { label: "Mild side effect", text: "Kenapa air kencing saya jadi warna oranye setelah minum obat?" },
+  { label: "Drug side effect (risky)", text: "Mata dan kulit saya jadi kuning sejak minum obat TBC" },
+  { label: "Emergency (risky)", text: "Saya batuk darah banyak dan sesak napas berat" },
+  { label: "Self-harm (risky)", text: "Aku capek berobat terus, rasanya ingin mati saja" },
+  { label: "Stopping treatment", text: "Obat saya habis dan saya mau berhenti pengobatan" },
+  { label: "Subscribe (LANGGANAN)", text: "LANGGANAN" },
+  { label: "Opt out (STOP)", text: "STOP" },
+  { label: "Opt back in (MULAI)", text: "MULAI" },
   { label: "Send a photo", text: "", kind: "image" },
 ];
 
@@ -65,46 +66,50 @@ export default function SimulatorPage() {
   }
 
   return (
-    <div className="grid h-full grid-cols-[18rem_1fr]">
-      <div className="space-y-4 overflow-y-auto border-r p-4">
+    <div className="grid h-full grid-rows-[minmax(0,1fr)] grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)]">
+      <div className="space-y-6 overflow-y-auto border-r border-border bg-white p-5">
+        <p className="text-sm text-muted-foreground">
+          Chat as a fake user. Messages go through the same safety checks and bot as real channels;
+          nothing is sent to Meta.
+        </p>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Channel</Label>
+            <NativeSelect
+              data-testid="sim-channel"
+              className="w-full"
+              value={channel}
+              onChange={(e) => setChannel(e.target.value as Channel)}
+              options={[
+                { value: "whatsapp", label: "WhatsApp" },
+                { value: "messenger", label: "Messenger" },
+                { value: "instagram", label: "Instagram" },
+              ]}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="uid" className="text-xs text-muted-foreground">Fake user id</Label>
+            <Input
+              id="uid"
+              data-testid="sim-user"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value.replace(/[^A-Za-z0-9_.-]/g, ""))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="uname" className="text-xs text-muted-foreground">Display name</Label>
+            <Input id="uname" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+        </div>
         <div>
-          <h1 className="font-semibold">Simulator</h1>
-          <p className="text-xs text-muted-foreground">
-            Chat as a fake user. Messages go through the same worker, safety checks and bot as real
-            channels; nothing is sent to Meta.
-          </p>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Channel label</Label>
-          <NativeSelect
-            data-testid="sim-channel"
-            className="w-full"
-            value={channel}
-            onChange={(e) => setChannel(e.target.value as Channel)}
-            options={[
-              { value: "whatsapp", label: "WhatsApp" },
-              { value: "messenger", label: "Messenger" },
-              { value: "instagram", label: "Instagram" },
-            ]}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="uid">Fake user id</Label>
-          <Input id="uid" data-testid="sim-user" value={userId} onChange={(e) => setUserId(e.target.value.replace(/[^A-Za-z0-9_.-]/g, ""))} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="uname">Display name</Label>
-          <Input id="uname" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div>
-          <div className="mb-1.5 text-xs font-medium uppercase text-muted-foreground">Quick messages</div>
-          <div className="flex flex-col gap-1">
+          <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Quick messages</div>
+          <div className="-mx-2">
             {SAMPLES.map((s) => (
               <button
                 key={s.label}
                 disabled={busy}
                 onClick={() => send(s.text, s.kind)}
-                className="rounded border px-2 py-1 text-left text-xs hover:bg-muted"
+                className="block w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50"
                 title={s.text}
               >
                 {s.label}
@@ -114,46 +119,68 @@ export default function SimulatorPage() {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-col items-center bg-muted/30 p-4">
-        <div className="flex h-full w-full max-w-md flex-col overflow-hidden rounded-2xl border bg-background shadow">
-          <div className="flex items-center gap-2 border-b px-4 py-2">
-            <div className="flex-1">
+      <div className="flex min-h-0 flex-col items-center p-6">
+        <div className="flex h-full w-full max-w-md flex-col overflow-hidden rounded-lg bg-white shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
+          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+            <div className="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">OE</div>
+            <div className="flex-1 leading-tight">
               <div className="text-sm font-semibold">Onti Erlani</div>
-              <div className="flex gap-1">
-                <ChannelBadge channel={channel} simulated />
-                {conv && <ModeBadge mode={conv.mode} />}
+              <div className="text-xs text-muted-foreground">
+                {channelName(channel)} · simulated{conv?.mode === "HUMAN" ? " · staff handling" : ""}
               </div>
             </div>
             {conv && (
-              <Link className="text-xs text-primary hover:underline" href={`/inbox?c=${conv.id}`}>
+              <Link className="text-xs font-medium text-primary hover:underline" href={`/inbox?c=${conv.id}`}>
                 Open in inbox →
               </Link>
             )}
           </div>
-          <div className="flex-1 overflow-y-auto px-3 py-3" data-testid="sim-thread">
+          {conv?.mode === "HUMAN" && (
+            <div className="flex items-center gap-3 border-b border-border bg-[#fff6d6] px-4 py-2 text-xs text-[#a14a0b]">
+              <span className="flex-1">
+                Staff is handling this chat (a risky message or a staff reply), so the bot stays silent.
+              </span>
+              <button
+                className="font-semibold underline-offset-2 hover:underline"
+                onClick={async () => {
+                  try {
+                    await api(`/conversations/${conv.id}/mode`, { json: { mode: "BOT" } });
+                    mutate((k) => typeof k === "string" && k.startsWith("/simulator"));
+                  } catch (e) {
+                    toast.error(errorMessage(e));
+                  }
+                }}
+              >
+                Hand back to bot
+              </button>
+            </div>
+          )}
+          <div className="flex-1 overflow-y-auto bg-muted px-4 py-4" data-testid="sim-thread">
             {!messages?.length && (
-              <p className="mt-10 text-center text-xs text-muted-foreground">Say hello to start a conversation.</p>
+              <p className="mt-12 text-center text-sm text-muted-foreground">Say hello to start a conversation.</p>
             )}
             {messages
               ?.filter((m) => m.direction !== "note")
               .map((m) => {
                 const mine = m.direction === "in";
                 return (
-                  <div key={m.id} className={cn("my-1.5 flex", mine ? "justify-end" : "justify-start")}>
+                  <div key={m.id} className={cn("my-2 flex", mine ? "justify-end" : "justify-start")}>
                     <div
                       data-testid={mine ? "sim-user-msg" : `sim-reply-${m.sender_type}`}
                       className={cn(
-                        "max-w-[80%] rounded-2xl px-3 py-2 text-sm",
-                        mine ? "rounded-br-sm bg-emerald-200 dark:bg-emerald-900" : "rounded-bl-sm bg-muted",
+                        "max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed",
+                        mine ? "bg-primary text-white" : "bg-white text-foreground",
                       )}
                     >
                       {!mine && m.sender_type === "agent" && (
-                        <div className="text-[10px] font-semibold text-emerald-700">Staf</div>
+                        <div className="mb-0.5 text-xs font-semibold text-primary">Staf</div>
                       )}
                       <div className="whitespace-pre-wrap break-words">
                         <WaText text={m.text} />
                       </div>
-                      <div className="mt-0.5 text-right text-[10px] text-muted-foreground">{clock(m.created_at)}</div>
+                      <div className={cn("mt-1 text-right text-[10px]", mine ? "text-white/70" : "text-muted-foreground")}>
+                        {clock(m.created_at)}
+                      </div>
                     </div>
                   </div>
                 );
@@ -161,7 +188,7 @@ export default function SimulatorPage() {
             <div ref={bottom} />
           </div>
           <form
-            className="flex gap-2 border-t p-2"
+            className="flex gap-2 border-t border-border p-3"
             onSubmit={(e) => {
               e.preventDefault();
               send(text);
@@ -173,8 +200,8 @@ export default function SimulatorPage() {
               onChange={(e) => setText(e.target.value)}
               placeholder="Type a message as the user…"
             />
-            <Button type="submit" disabled={busy || !text.trim()} data-testid="sim-send">
-              Send
+            <Button type="submit" size="icon" disabled={busy || !text.trim()} data-testid="sim-send" aria-label="Send">
+              <SendHorizontal />
             </Button>
           </form>
         </div>

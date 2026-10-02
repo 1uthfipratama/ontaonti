@@ -20,7 +20,7 @@ function Inbox() {
   });
 
   return (
-    <div className="grid h-full grid-cols-[20rem_1fr_17rem]">
+    <div className="grid h-full grid-rows-[minmax(0,1fr)] grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)_18rem]">
       <ConversationList
         filters={filters}
         setFilters={setFilters}
@@ -30,11 +30,13 @@ function Inbox() {
       {selected ? (
         <Thread key={selected} id={selected} />
       ) : (
-        <div className="flex items-center justify-center text-sm text-muted-foreground">
+        <div className="flex items-center justify-center bg-white text-sm text-muted-foreground">
           Select a conversation
         </div>
       )}
-      {selected ? <ContactPanel id={selected} /> : <div className="border-l" />}
+      <div className="hidden min-h-0 xl:block">
+        {selected ? <ContactPanel id={selected} /> : <div className="h-full border-l border-border bg-white" />}
+      </div>
     </div>
   );
 }

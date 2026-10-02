@@ -50,12 +50,12 @@ function compact(n: number): string {
 /** Stat tile: label, value, optional sub-line. */
 function Tile({ label, value, sub, icon, testId }: { label: string; value: string; sub?: string; icon?: React.ReactNode; testId?: string }) {
   return (
-    <div className="rounded-xl border bg-[var(--viz-surface)] p-4" data-testid={testId}>
+    <div className="h-full rounded-lg bg-[var(--viz-surface)] p-5" data-testid={testId}>
       <div className="flex items-center gap-1.5 text-xs text-[var(--viz-ink-2)]">
         {icon}
         {label}
       </div>
-      <div className="mt-1 text-2xl font-semibold text-[var(--viz-ink)]">{value}</div>
+      <div className="mt-2 text-2xl font-semibold text-[var(--viz-ink)]">{value}</div>
       {sub && <div className="mt-0.5 text-xs text-[var(--viz-muted)]">{sub}</div>}
     </div>
   );
@@ -83,7 +83,7 @@ function Meter({ label, used, limit, alertAt, format, level, note }: {
         </span>
       </div>
       <div
-        className="relative h-2.5 w-full rounded-full bg-[var(--viz-track)]"
+        className="relative h-2 w-full rounded-full bg-[var(--viz-track)]"
         role="meter"
         aria-label={label}
         aria-valuemin={0}
@@ -151,7 +151,7 @@ function Bars({ title, data, table }: { title: string; data: { label: string; va
 export default function DashboardPage() {
   const { data, error } = useSWR<Dashboard>("/dashboard", { refreshInterval: 30000 });
   const [table, setTable] = useState(false);
-  if (error) return <div className="p-6 text-sm text-red-600">{error.message}</div>;
+  if (error) return <div className="p-6 text-sm text-destructive">{error.message}</div>;
   if (!data) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
 
   const series = (k: "today" | "month") =>
@@ -164,11 +164,8 @@ export default function DashboardPage() {
   const cases = data.open_cases;
 
   return (
-    <div className="viz-root h-full space-y-6 overflow-y-auto p-6">
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-lg font-semibold">Dashboard</h1>
-        <span className="text-xs text-muted-foreground">Days and months in {data.timezone}</span>
-      </div>
+    <div className="viz-root h-full space-y-4 overflow-y-auto p-6">
+      <p className="text-xs text-muted-foreground">Days and months follow {data.timezone}. Updates every 30 seconds.</p>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Key figures">
         <Tile label="Conversations today" value={compact(todayTotal)} sub={`${compact(Object.values(data.conversations.month).reduce((a, b) => a + b, 0))} this month`} testId="tile-today" />
@@ -225,7 +222,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center">
             <CardTitle className="flex-1 text-sm">Active conversations by channel</CardTitle>
-            <button className="text-xs text-primary hover:underline" onClick={() => setTable(!table)}>
+            <button className="text-xs font-medium text-primary hover:underline" onClick={() => setTable(!table)}>
               {table ? "Show bars" : "Show table"}
             </button>
           </CardHeader>

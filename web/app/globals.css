@@ -8,7 +8,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -35,6 +35,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -49,106 +50,71 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Mekari Pixel v2.4 tokens (docs.mekari.design): neutral ink, indigo accent,
+     slate canvas with white panels. */
+  --background: #f1f5f9; /* background.surface (page canvas) */
+  --foreground: #272b32; /* text.default */
+  --card: #ffffff;
+  --card-foreground: #272b32;
+  --popover: #ffffff;
+  --popover-foreground: #272b32;
+  --primary: #4b61dc; /* indigo.700 */
+  --primary-hover: #4053bc; /* indigo.800 */
+  --primary-foreground: #ffffff;
+  --secondary: #f0f1f3; /* neutral.200 */
+  --secondary-foreground: #272b32;
+  --muted: #f7f8f9; /* neutral.100 */
+  --muted-foreground: #656f80; /* text.secondary */
+  --accent: #eef0fc; /* background.information */
+  --accent-foreground: #4053bc;
+  --destructive: #c33e35;
+  --border: #dcdfe4; /* border.default */
+  --input: #dcdfe4;
+  --ring: #7586e5; /* border.focused */
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #383e48;
+  --sidebar-primary: #4b61dc;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef0fc;
+  --sidebar-accent-foreground: #4b61dc;
+  --sidebar-border: #dcdfe4;
+  --sidebar-ring: #7586e5;
+  /* severity marks: the only colours besides the accent */
+  --sev-emergency: #c33e35;
+  --sev-high: #e2762a;
+  --sev-low: #d4a514;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Not used yet: the UI ships light-only for the prototype. */
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: #dcdfe4 transparent;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-sm;
   }
   html {
     @apply font-sans;
   }
 }
-/* Data-viz roles (dashboard). Sequential = one blue ramp; status colours are
+/* Data-viz roles (dashboard): one indigo ramp for magnitude; status colours are
    fixed and always paired with an icon + label. */
 .viz-root {
-  --viz-surface: #fcfcfb;
-  --viz-ink: #0b0b0b;
-  --viz-ink-2: #52514e;
-  --viz-muted: #898781;
-  --viz-grid: #e1e0d9;
-  --viz-seq: #2a78d6;
-  --viz-track: #cde2fb;
-  --viz-good: #0ca30c;
-  --viz-warning: #fab219;
-  --viz-serious: #ec835a;
-  --viz-critical: #d03b3b;
-}
-.dark .viz-root {
-  --viz-surface: #1a1a19;
-  --viz-ink: #ffffff;
-  --viz-ink-2: #c3c2b7;
-  --viz-muted: #898781;
-  --viz-grid: #2c2c2a;
-  --viz-seq: #3987e5;
-  --viz-track: #104281;
+  --viz-surface: #ffffff;
+  --viz-ink: #272b32;
+  --viz-ink-2: #656f80;
+  --viz-muted: #758195;
+  --viz-grid: #dcdfe4;
+  --viz-seq: #4b61dc;
+  --viz-track: #eef0fc;
+  --viz-good: #1c8459;
+  --viz-warning: #d4a514;
+  --viz-serious: #e2762a;
+  --viz-critical: #c33e35;
 }

@@ -91,7 +91,7 @@ function Templates() {
     <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
       <Card>
         <CardHeader className="flex flex-row items-center">
-          <CardTitle className="flex-1 text-sm">Templates</CardTitle>
+          <CardTitle className="flex-1">Templates</CardTitle>
           <Button size="sm" variant="outline" onClick={sync}>
             Sync from WhatsApp
           </Button>
@@ -130,7 +130,7 @@ function Templates() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Register manually</CardTitle>
+          <CardTitle>Register manually</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <p className="text-[11px] text-muted-foreground">
@@ -195,7 +195,7 @@ function Composer({ onCreated }: { onCreated: (id: number) => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">New broadcast</CardTitle>
+        <CardTitle>New broadcast</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">
@@ -209,7 +209,7 @@ function Composer({ onCreated }: { onCreated: (id: number) => void }) {
               options={[{ value: "", label: "Choose an approved template…" }, ...usable.map((x) => ({ value: String(x.id), label: `${x.name} (${x.language}, ${x.category})` }))]}
             />
           </div>
-          {t && <p className="rounded bg-muted p-2 text-xs whitespace-pre-wrap">{t.body_text}</p>}
+          {t && <p className="rounded-lg bg-muted px-3 py-2 text-sm whitespace-pre-wrap">{t.body_text}</p>}
           {vars.map((v, i) => (
             <div key={i} className="space-y-1">
               <Label className="text-xs">{`{{${i + 1}}}`}</Label>
@@ -251,7 +251,7 @@ function Composer({ onCreated }: { onCreated: (id: number) => void }) {
               <div className="text-xs text-muted-foreground">To: {est.sample.join(", ")}{est.recipients > est.sample.length ? "…" : ""}</div>
               <div>
                 <div className="text-xs text-muted-foreground">Preview (first recipient)</div>
-                <div className="mt-1 rounded-2xl bg-emerald-100 p-3 text-sm whitespace-pre-wrap dark:bg-emerald-950">{est.preview}</div>
+                <div className="mt-1 rounded-lg bg-accent px-3.5 py-2.5 text-sm whitespace-pre-wrap">{est.preview}</div>
               </div>
             </>
           ) : (
@@ -268,9 +268,9 @@ function Composer({ onCreated }: { onCreated: (id: number) => void }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border p-2">
-      <div className="text-[11px] text-muted-foreground">{label}</div>
-      <div className="text-lg font-semibold">{value}</div>
+    <div className="rounded-lg bg-muted px-3 py-2.5">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-lg font-semibold">{value}</div>
     </div>
   );
 }
@@ -282,7 +282,7 @@ function Campaign({ id }: { id: number }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">
+        <CardTitle>
           {b.name} · <span className="font-normal">{b.status}</span>
         </CardTitle>
       </CardHeader>
@@ -310,7 +310,7 @@ function Campaign({ id }: { id: number }) {
             {b.recipients?.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="text-xs">{r.contact_name}</TableCell>
-                <TableCell className={cn("text-xs", r.status === "failed" && "text-red-600")}>{r.status}</TableCell>
+                <TableCell className={cn("text-xs", r.status === "failed" && "text-destructive")}>{r.status}</TableCell>
                 <TableCell className="text-xs">{r.attempts}</TableCell>
                 <TableCell className="text-xs">{clock(r.sent_at)}</TableCell>
                 <TableCell className="text-xs">{clock(r.read_at)}</TableCell>
@@ -330,13 +330,12 @@ function Broadcasts() {
   const selected = params.get("id") ? Number(params.get("id")) : null;
   const { data } = useSWR<Broadcast[]>("/broadcasts");
   return (
-    <div className="h-full space-y-6 overflow-y-auto p-6">
-      <h1 className="text-lg font-semibold">WhatsApp broadcasts</h1>
+    <div className="h-full space-y-4 overflow-y-auto p-6">
       <Composer onCreated={(id) => router.push(`/broadcasts?id=${id}`)} />
       {selected && <Campaign key={selected} id={selected} />}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Campaigns</CardTitle>
+          <CardTitle>Campaigns</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>

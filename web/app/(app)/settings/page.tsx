@@ -6,19 +6,21 @@ import { StaffManager } from "@/components/settings/staff";
 
 export default function SettingsPage() {
   return (
-    <div className="h-full space-y-8 overflow-y-auto p-6">
-      <section>
-        <h1 className="mb-3 text-lg font-semibold">Channels</h1>
-        <ChannelStatus />
-      </section>
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Bot, safety and cost settings</h2>
-        <SettingsEditor />
-      </section>
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Staff</h2>
-        <StaffManager />
-      </section>
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-5xl space-y-8 p-6">
+        <section>
+          <h2 className="mb-3 text-sm font-semibold">Channels</h2>
+          <ChannelStatus />
+        </section>
+        <section>
+          <h2 className="mb-3 text-sm font-semibold">Bot, safety and costs</h2>
+          <SettingsEditor />
+        </section>
+        <section>
+          <h2 className="mb-3 text-sm font-semibold">Staff</h2>
+          <StaffManager />
+        </section>
+      </div>
     </div>
   );
 }

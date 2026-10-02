@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { NativeSelect } from "@/components/native-select";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api, errorMessage } from "@/lib/api";
@@ -37,9 +37,6 @@ export function StaffManager() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Staff accounts</CardTitle>
-      </CardHeader>
       <CardContent className="space-y-4">
         <Table>
           <TableHeader>
@@ -69,7 +66,7 @@ export function StaffManager() {
                   ) : (
                     <Button
                       size="xs"
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => run(() => api(`/staff/${s.id}`, { method: "PATCH", json: { is_active: !s.is_active } }), s.is_active ? "Deactivated" : "Activated")}
                     >
                       {s.is_active ? "Deactivate" : "Activate"}
@@ -92,6 +89,7 @@ export function StaffManager() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
           <Button
+            variant="outline"
             disabled={!form.email || form.password.length < 10}
             onClick={() =>
               run(async () => {
