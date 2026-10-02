@@ -1,0 +1,21 @@
+# API + worker (Docker image and local venv). Top-level dependencies only.
+fastapi==0.142.2
+uvicorn[standard]==0.54.0
+sse-starlette==3.5.0
+pydantic-settings==2.15.0
+sqlalchemy[asyncio]==2.1.2
+asyncpg==0.31.0
+aiosqlite==0.22.1
+alembic==1.20.0
+redis==5.3.1
+arq==0.28.0
+itsdangerous==2.2.0
+bcrypt==5.0.0
+httpx==0.28.1
+anthropic==1.11.0
+pyyaml==6.0.3
+# RAG module (rag/)
+fastembed==0.8.1
+sqlite-vec==0.1.9
+tokenizers==0.23.2
+numpy==2.5.3
