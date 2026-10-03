@@ -17,6 +17,19 @@ def to_whatsapp(text: str) -> str:
     return t.strip()
 
 
+SENTENCE_END = re.compile(r"[.!?…][*_~)\]\"'”’]*(?=\s|$)|\n\n")
+
+
+def trim_incomplete(text: str) -> str:
+    """Drop a trailing fragment when the model was cut off by max_tokens
+    ("...tuntas. Jen" -> "...tuntas."). Keeps the text if no sentence end exists."""
+    t = text.rstrip()
+    ends = [m.end() for m in SENTENCE_END.finditer(t)]
+    if not ends:
+        return t
+    return t[: ends[-1]].rstrip()
+
+
 def clamp(text: str, limit: int) -> str:
     """At most `limit` characters, cut at a sentence (or word) boundary."""
     if len(text) <= limit:

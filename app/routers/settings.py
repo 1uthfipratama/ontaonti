@@ -171,16 +171,24 @@ async def channels(
         ch: await settings_service.get_value(session, f"last_webhook_{ch}")
         for ch in ("whatsapp", "messenger", "instagram")
     }
+    detected_phone = await settings_service.get_value(session, "wa_detected_phone_number_id")
+    detected_waba = await settings_service.get_value(session, "wa_detected_waba_id")
+
+    def id_check(env_value: str, detected) -> str:
+        return "set" if env_value else (f"detected {detected}" if detected else "missing")
+
+    wa_ready = bool(settings.wa_access_token and settings.wa_app_secret and settings.wa_verify_token
+                    and (settings.wa_phone_number_id or detected_phone))  # fmt: skip
     return {
         "whatsapp": {
             "enabled": True,
-            "configured": settings.whatsapp_configured and bool(settings.wa_verify_token),
+            "configured": wa_ready,
             "webhook_url": f"{base}/webhook/whatsapp",
             "graph_version": settings.wa_graph_version,
             "checks": {
                 "WA_ACCESS_TOKEN": _mask(settings.wa_access_token),
-                "WA_PHONE_NUMBER_ID": _mask(settings.wa_phone_number_id),
-                "WA_BUSINESS_ACCOUNT_ID": _mask(settings.wa_business_account_id),
+                "WA_PHONE_NUMBER_ID": id_check(settings.wa_phone_number_id, detected_phone),
+                "WA_BUSINESS_ACCOUNT_ID": id_check(settings.wa_business_account_id, detected_waba),
                 "WA_APP_SECRET": _mask(settings.wa_app_secret),
                 "WA_VERIFY_TOKEN": _mask(settings.wa_verify_token),
             },

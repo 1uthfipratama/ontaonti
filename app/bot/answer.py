@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import llm
 from app.bot import rag_service
-from app.bot.format import clamp, to_whatsapp
+from app.bot.format import clamp, to_whatsapp, trim_incomplete
 from app.bot.language import LANG_NAME, detect
 from app.constants import DIR_IN, DIR_OUT, MSG_FAILED
 from app.models import Conversation, Message
@@ -92,7 +92,10 @@ async def generate(
         message_id=msg.id,
     )
     clean, cited, _ = validate_citations(result.text, len(snippets))
-    reply = clamp(to_whatsapp(strip_markers(clean)), cfg["max_reply_chars"])
+    reply = to_whatsapp(strip_markers(clean))
+    if result.stop_reason in ("max_tokens", "length"):  # cut off mid-sentence
+        reply = trim_incomplete(reply)
+    reply = clamp(reply, cfg["max_reply_chars"])
     if not reply:
         raise llm.LLMError("empty answer")
     by_n = {s.n: s for s in snippets}

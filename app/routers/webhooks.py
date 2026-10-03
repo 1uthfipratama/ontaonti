@@ -37,14 +37,40 @@ def _secrets(channel: str) -> tuple[str, str]:
     return settings.verify_token_meta, settings.app_secret_meta
 
 
-async def _touch(channel: str) -> None:
-    """Remember when each channel last called us (Settings -> channel status)."""
+def whatsapp_ids(payload: dict) -> tuple[str | None, str | None]:
+    """(WhatsApp Business Account ID, phone number ID) carried by every WhatsApp
+    webhook: entry.id and value.metadata.phone_number_id."""
+    for entry in payload.get("entry") or []:
+        for change in entry.get("changes") or []:
+            meta = (change.get("value") or {}).get("metadata") or {}
+            phone = meta.get("phone_number_id")
+            # The dashboard's "Test" button sends Meta's sample payload: ignore it.
+            if (
+                not phone
+                or phone == "123456123"
+                or meta.get("display_phone_number") == "16505551111"
+            ):
+                continue
+            return str(entry.get("id") or "") or None, str(phone)
+    return None, None
+
+
+async def _touch(channel: str, payload: dict) -> None:
+    """Remember when each channel last called us (Settings -> channel status), and
+    which WhatsApp account/number it was for: the adapter falls back to these when
+    WA_PHONE_NUMBER_ID / WA_BUSINESS_ACCOUNT_ID are not set."""
     try:
         async with SessionLocal() as s:
             await settings_service.set_value(s, f"last_webhook_{channel}", utcnow().isoformat())
+            if channel == "whatsapp":
+                waba, phone = whatsapp_ids(payload)
+                if phone:
+                    await settings_service.set_value(s, "wa_detected_phone_number_id", phone)
+                if waba and waba != "0":
+                    await settings_service.set_value(s, "wa_detected_waba_id", waba)
             await s.commit()
     except Exception:
-        log.debug("could not record webhook time", exc_info=True)
+        log.debug("could not record webhook details", exc_info=True)
 
 
 @router.get("/{channel}")
@@ -71,7 +97,7 @@ async def receive(channel: str, request: Request):
         payload = json.loads(raw)
     except ValueError as e:
         raise HTTPException(400, "Invalid JSON") from e
-    await _touch(channel)
+    await _touch(channel, payload)
     job_id = f"wh-{channel}-{hashlib.sha256(raw).hexdigest()[:32]}"
     await queue.enqueue("process_webhook", channel, payload, _job_id=job_id)
     return {"ok": True}

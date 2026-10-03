@@ -61,7 +61,8 @@ export function ChannelStatus() {
     <div className="rounded-lg bg-white">
       {rows.map(([name, ch], i) => {
         const st = state(ch);
-        const missing = Object.entries(ch.checks).filter(([, v]) => v !== "set").map(([k]) => k);
+        const missing = Object.entries(ch.checks).filter(([, v]) => v === "missing").map(([k]) => k);
+        const detected = Object.entries(ch.checks).filter(([, v]) => v.startsWith("detected"));
         return (
           <div
             key={name}
@@ -77,6 +78,11 @@ export function ChannelStatus() {
                 Webhook <code className="break-all text-foreground">{ch.webhook_url}</code>
               </div>
               {missing.length > 0 && <div>Missing: {missing.join(", ")}</div>}
+              {detected.map(([k, v]) => (
+                <div key={k}>
+                  {k} {v.replace("detected", "learned from webhook:")}
+                </div>
+              ))}
               <div>Last webhook: {ch.last_webhook_at ? clock(ch.last_webhook_at) : "never"}</div>
               {name === "WhatsApp" && check && <div className="text-foreground">{check}</div>}
             </div>

@@ -17,6 +17,26 @@ MEDIA_KINDS = ("image", "video", "audio", "document", "sticker")
 TRACKED_STATUSES = ("delivered", "read", "failed")  # "sent" is ignored (we record it on send)
 
 
+async def _detected(key: str) -> str:
+    from app.db import SessionLocal
+    from app.services.settings_service import get_value
+
+    try:
+        async with SessionLocal() as s:
+            return str(await get_value(s, key) or "")
+    except Exception:
+        return ""
+
+
+async def phone_number_id() -> str:
+    """WA_PHONE_NUMBER_ID, else the one learned from the last WhatsApp webhook."""
+    return settings.wa_phone_number_id or await _detected("wa_detected_phone_number_id")
+
+
+async def business_account_id() -> str:
+    return settings.wa_business_account_id or await _detected("wa_detected_waba_id")
+
+
 def _ts(value) -> datetime:
     try:
         return datetime.fromtimestamp(int(value), UTC)
@@ -101,10 +121,14 @@ class WhatsAppAdapter(ChannelAdapter):
     # --- outbound ------------------------------------------------------------
 
     async def _post(self, body: dict) -> dict:
-        if not settings.wa_phone_number_id:
-            raise SendError("WA_PHONE_NUMBER_ID is not set", code="config")
+        phone_id = await phone_number_id()
+        if not phone_id:
+            raise SendError(
+                "WA_PHONE_NUMBER_ID is not set (and no WhatsApp webhook has arrived yet)",
+                code="config",
+            )
         return await graph_request(
-            "POST", f"{settings.wa_phone_number_id}/messages", settings.wa_access_token, json=body
+            "POST", f"{phone_id}/messages", settings.wa_access_token, json=body
         )
 
     async def send(self, conversation, text: str, *, human_agent: bool = False) -> str | None:
@@ -140,19 +164,23 @@ class WhatsAppAdapter(ChannelAdapter):
     # --- account -------------------------------------------------------------
 
     async def phone_info(self) -> dict:
+        phone_id = await phone_number_id()
+        if not phone_id:
+            raise SendError("WA_PHONE_NUMBER_ID is not set (and no webhook has arrived yet)")
         return await graph_request(
             "GET",
-            settings.wa_phone_number_id,
+            phone_id,
             settings.wa_access_token,
             params={"fields": "display_phone_number,verified_name,quality_rating"},
         )
 
     async def list_templates(self) -> list[dict]:
-        if not settings.wa_business_account_id:
+        waba = await business_account_id()
+        if not waba:
             raise SendError("WA_BUSINESS_ACCOUNT_ID is not set", code="config")
         out: list[dict] = []
         params = {"limit": 100, "fields": "name,language,status,category,components"}
-        path = f"{settings.wa_business_account_id}/message_templates"
+        path = f"{waba}/message_templates"
         for _ in range(10):  # pagination guard
             data = await graph_request("GET", path, settings.wa_access_token, params=params)
             out += data.get("data") or []

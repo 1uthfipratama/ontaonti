@@ -260,3 +260,30 @@ async def test_messenger_signature_checked(client):
         "/webhook/messenger", content=body, headers={"X-Hub-Signature-256": "sha256=00"}
     )
     assert r.status_code == 403
+
+
+async def test_phone_number_id_is_learned_from_webhooks(client, graph, monkeypatch):
+    """Without WA_PHONE_NUMBER_ID, replies use the number the message came in on."""
+    monkeypatch.setattr(settings, "wa_phone_number_id", "")
+    monkeypatch.setattr(settings, "wa_business_account_id", "")
+    r = await post_signed(client, wa_text("Apa itu TBC?"))
+    assert r.status_code == 200
+    assert any(b.get("type") == "text" for b in graph)  # sent via .../1111111111/messages
+    from app.channels.whatsapp import business_account_id, phone_number_id
+
+    assert await phone_number_id() == "1111111111"
+    assert await business_account_id() == "2222222222"
+
+
+async def test_meta_sample_payload_does_not_overwrite_ids(client, graph, monkeypatch):
+    monkeypatch.setattr(settings, "wa_phone_number_id", "")
+    sample = wa_text("this is a text message")
+    sample["entry"][0]["id"] = "0"
+    sample["entry"][0]["changes"][0]["value"]["metadata"] = {
+        "display_phone_number": "16505551111",
+        "phone_number_id": "123456123",
+    }
+    await post_signed(client, sample)
+    from app.channels.whatsapp import phone_number_id
+
+    assert await phone_number_id() == ""
