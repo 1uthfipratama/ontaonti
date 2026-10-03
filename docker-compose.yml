@@ -79,6 +79,18 @@ services:
       - api
     restart: unless-stopped
 
+  # Public HTTPS URL for Meta webhooks (Cloudflare quick tunnel, no account needed).
+  # Start:   docker compose --profile tunnel up -d tunnel
+  # URL:     docker compose logs tunnel   (look for https://...trycloudflare.com)
+  # The URL changes whenever this container restarts: update it in Meta then.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: ["tunnel", "--no-autoupdate", "--url", "http://api:8000"]
+    profiles: ["tunnel"]
+    depends_on:
+      - api
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:

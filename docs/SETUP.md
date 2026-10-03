@@ -66,12 +66,15 @@ simulated contacts) works without Meta. See [DEMO.md](DEMO.md) for a full script
    **To** list. The test number can only message up to 5 verified numbers.
 5. Recreate the backend so it reads the new env:
    `docker compose up -d --force-recreate api worker`
-6. Start a public tunnel to the API (new terminal, leave it running):
+6. Start a public HTTPS tunnel to the API. Easiest: the optional compose
+   service, which keeps running in the background with the stack:
    ```powershell
-   cloudflared tunnel --url http://localhost:8000
+   docker compose --profile tunnel up -d tunnel
+   docker compose logs tunnel    # look for https://<random>.trycloudflare.com
    ```
-   It prints `https://<random>.trycloudflare.com`. Optionally put it in `.env` as
-   `API_BASE_URL` (the Settings page then shows the full webhook URL).
+   (Or run `cloudflared tunnel --url http://localhost:8000` in a terminal and
+   leave it open.) Optionally put the URL in `.env` as `API_BASE_URL` so the
+   Settings page shows the full webhook URL.
 7. Meta App Dashboard → **WhatsApp → Configuration → Webhook → Edit**:
    - Callback URL: `https://<random>.trycloudflare.com/webhook/whatsapp`
    - Verify token: your `WA_VERIFY_TOKEN`
@@ -79,9 +82,12 @@ simulated contacts) works without Meta. See [DEMO.md](DEMO.md) for a full script
 8. From your phone, send "Halo" to the test number. You should get the privacy
    notice and an answer, and see the conversation in the inbox.
 
-**The quick-tunnel URL changes every time cloudflared restarts.** Update the
-Callback URL in Meta each time (or use a named Cloudflare tunnel with a fixed
-hostname).
+**The quick-tunnel URL changes every time the tunnel restarts** (including after
+a reboot or a Docker Desktop restart). Get the new one with
+`docker compose logs tunnel` and update the Callback URL in Meta (or use a named
+Cloudflare tunnel with a fixed hostname). In Meta's "Production setup" checklist
+you can skip *Register your WhatsApp phone number* and *Add payment*: the test
+number needs neither.
 
 Admin → **Settings → Channels** shows what is configured, when the last webhook
 arrived, and a **Test token** button that calls the Graph API.
