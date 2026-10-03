@@ -36,14 +36,28 @@ export function ChannelStatus() {
   async function runCheck() {
     setCheck("Checking…");
     try {
-      const r = await api<{ ok: boolean; error?: string; phone?: Record<string, string> }>(
-        "/settings/channels/whatsapp/check",
-        { method: "POST" },
-      );
+      type Health = {
+        can_send_message?: string;
+        entities?: { entity_type: string; errors?: { error_code: number; error_description: string }[] }[];
+      };
+      const r = await api<{
+        ok: boolean;
+        error?: string;
+        phone?: { display_phone_number?: string; verified_name?: string; health_status?: Health };
+      }>("/settings/channels/whatsapp/check", { method: "POST" });
+      if (!r.ok) {
+        setCheck(`Failed: ${r.error}`);
+        return;
+      }
+      const health = r.phone?.health_status;
+      // Meta's own diagnosis of why messages can't be delivered (SIP/calling errors aren't relevant).
+      const reasons = (health?.entities ?? [])
+        .flatMap((e) => (e.errors ?? []).map((x) => `${x.error_description} (${x.error_code})`))
+        .filter((t) => !/SIP/i.test(t));
+      const sending = health?.can_send_message ?? "unknown";
       setCheck(
-        r.ok
-          ? `Token works: ${r.phone?.display_phone_number ?? ""} ${r.phone?.verified_name ?? ""}`
-          : `Failed: ${r.error}`,
+        `Token works: ${r.phone?.display_phone_number ?? ""} ${r.phone?.verified_name ?? ""}. ` +
+          `Sending: ${sending}${reasons.length ? ` — ${reasons.join(" · ")}` : ""}`,
       );
     } catch (e) {
       toast.error(errorMessage(e));

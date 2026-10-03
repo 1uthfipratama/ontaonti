@@ -171,7 +171,7 @@ class WhatsAppAdapter(ChannelAdapter):
             "GET",
             phone_id,
             settings.wa_access_token,
-            params={"fields": "display_phone_number,verified_name,quality_rating"},
+            params={"fields": "display_phone_number,verified_name,quality_rating,health_status"},
         )
 
     async def list_templates(self) -> list[dict]:
