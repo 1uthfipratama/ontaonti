@@ -22,22 +22,36 @@ All phases of the spec are built and committed.
 - Clicked through in a browser: inbox, simulator (consent notice + KB answer live
   over SSE), emergency flow, dashboard, settings.
 
-## Still needs you
+## Status on 2026-10-03
 
-1. **Anthropic key**: add `ANTHROPIC_WORKSPACE_ID` to `.env` (or use a
-   workspace-scoped key). Until then every answer falls back to the fixed
-   "staf kami akan menghubungi" reply plus a BOT_ERROR case. Then run
-   `docker compose up -d --force-recreate api worker`.
-2. **WhatsApp**: `WA_PHONE_NUMBER_ID`, `WA_BUSINESS_ACCOUNT_ID`, `WA_APP_SECRET`,
-   and a fresh token (the one in `.env` is a 24 h token). Steps are in `docs/SETUP.md` §4–5.
-3. **Rotate** the Anthropic key and the WhatsApp token you pasted in chat.
-4. **Medical review** of `kb/*.md` and the fixed safety texts (Settings → Safety).
-5. Optional: strip the old `Co-Authored-By` lines from the first 4 commits
-   (commands were given in chat). Newer commits don't have them.
+- **Bot on real Claude: working.** Sonnet 5.5 answers from the KB, about Rp 110 per
+  question including the safety classifier.
+- **WhatsApp test number: wired end to end, delivery blocked by Meta.** Webhooks
+  arrive (the `ontaonti` app is now subscribed to WABA 944254002089833), the bot
+  answers, and Meta refuses delivery (131031). Meta's health check (Settings →
+  Channels → Test token) says the *personal* business portfolio needs:
+  - Legal name, Country and Website in its business info
+  - business verification
+  - a payment method (for business-initiated messages)
+- The admin UI was redesigned after Mekari Pixel / Talenta.
 
-## Open decisions for the foundation
+## Next steps (weekdays)
 
-- HUMAN mode: the bot never replies, even to an emergency. Keywords still open a
-  case and alert staff. Is that the right call at night with no staff online?
-- The "1,000 free messages" figure and the IDR rates are editable placeholders.
-  Meta's pricing changed in 2024–2025, so check the current rate card.
+1. With the foundation's Meta admin: check business.facebook.com → Settings →
+   Accounts → WhatsApp accounts. Is the current (Qontak) number's WABA owned by the
+   foundation with Mekari as a partner? Is the business verified?
+2. **Pilot:** a new WABA + a spare number under the foundation's verified portfolio.
+   Qontak stays untouched. Connect the app with a System User token (SETUP §5).
+3. **Later cutover:** migrate the live number to the foundation-owned WABA. Number,
+   display name, quality rating, limits and approved templates move; chat history
+   and Qontak flows don't. Export the history first and agree the timing with Mekari.
+4. Before real patient data: proper hosting (not a PC + quick tunnel), backups,
+   UU PDP 27/2022 review (health data), medical review of `kb/` and the safety texts.
+
+## Housekeeping
+
+- Docker Desktop must be running for the app and the tunnel. The quick-tunnel URL
+  changes on every restart: `docker compose logs tunnel`, then update Meta.
+- `WA_ACCESS_TOKEN` is a 24 h token. Replace it with a System User token (SETUP §5).
+- Rotate the secrets that were pasted in chat (Anthropic key, WhatsApp token,
+  app secret) once the real setup exists.
