@@ -228,6 +228,21 @@ export default function SimulatorPage() {
                       <div className={cn("mt-1 text-right text-[10px]", mine ? "text-white/70" : "text-muted-foreground")}>
                         {clock(m.created_at)}
                       </div>
+                      {!mine && Array.isArray(m.meta?.buttons) && (
+                        <div className="-mx-3 -mb-2 mt-2 flex border-t border-border">
+                          {(m.meta.buttons as string[]).map((b) => (
+                            <button
+                              key={b}
+                              disabled={busy}
+                              onClick={() => send(b)}
+                              data-testid="sim-button"
+                              className="flex-1 py-2 text-center text-sm font-medium text-primary hover:bg-muted [&+&]:border-l [&+&]:border-border"
+                            >
+                              {b}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

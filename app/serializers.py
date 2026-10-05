@@ -50,6 +50,13 @@ def contact(c: Contact, with_identities: bool = True) -> dict:
         "opted_out": c.opted_out,
         "broadcast_opt_in": c.broadcast_opt_in,
         "created_at": iso(c.created_at),
+        "journey_stage": c.journey_stage,
+        "treatment_start": c.treatment_start.isoformat() if c.treatment_start else None,
+        "treatment_months": c.treatment_months,
+        "puskesmas": c.puskesmas,
+        "kader_id": c.kader_id,
+        "reminder_enabled": c.reminder_enabled,
+        "reminder_time": c.reminder_time,
     }
     if with_identities:
         out["identities"] = [identity(i) for i in c.identities]

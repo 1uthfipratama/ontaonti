@@ -62,6 +62,15 @@ export function MessageBubble({ m, staffName }: { m: Message; staffName?: string
           </div>
         )}
       </div>
+      {Array.isArray(m.meta?.buttons) && (
+        <div className="mt-1 flex gap-1.5 px-1">
+          {(m.meta.buttons as string[]).map((b) => (
+            <span key={b} className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
+              {b}
+            </span>
+          ))}
+        </div>
+      )}
       {m.error && <div className="mt-1 px-1 text-xs text-destructive">{t("msg.notDelivered", { error: m.error })}</div>}
       {m.flag_reason && inbound && (
         <div className="mt-1 px-1 text-xs text-muted-foreground">{t("msg.flaggedBy", { reason: m.flag_reason })}</div>

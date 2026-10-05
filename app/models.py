@@ -1,11 +1,12 @@
 """Database models. Types are kept portable (strings for enums, JSON) so the test
 suite can run on SQLite while production runs on PostgreSQL."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     JSON,
     Boolean,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -53,6 +54,15 @@ class Contact(Base):
     opted_out_at: Mapped[datetime | None] = mapped_column(TS)
     # Denormalised from the consents log for fast broadcast filtering.
     broadcast_opt_in: Mapped[bool] = mapped_column(Boolean, default=False)
+    # TB programme: where the person is in their care (app/services/journey.py).
+    journey_stage: Mapped[str | None] = mapped_column(String(12), index=True)
+    treatment_start: Mapped[date | None] = mapped_column(Date)
+    treatment_months: Mapped[int] = mapped_column(Integer, default=6)
+    puskesmas: Mapped[str] = mapped_column(String(120), default="")
+    kader_id: Mapped[int | None] = mapped_column(ForeignKey("staff_users.id", ondelete="SET NULL"))
+    # Daily medication reminder (app/services/reminders.py); staff switch it on.
+    reminder_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    reminder_time: Mapped[str] = mapped_column(String(5), default="07:00")  # local HH:MM
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TS, default=utcnow, onupdate=utcnow)
 
@@ -313,6 +323,54 @@ class SavedReply(Base):
     )
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TS, default=utcnow, onupdate=utcnow)
+
+
+class DoseLog(Base):
+    """One medication reminder and its answer, per contact per (local) day."""
+
+    __tablename__ = "dose_logs"
+    __table_args__ = (UniqueConstraint("contact_id", "day", name="uq_dose_contact_day"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    contact_id: Mapped[int] = mapped_column(
+        ForeignKey("contacts.id", ondelete="CASCADE"), index=True
+    )
+    day: Mapped[date] = mapped_column(Date)
+    # pending (asked) | taken | missed (said not yet, or no answer) | skipped (couldn't ask)
+    status: Mapped[str] = mapped_column(String(10), default="pending")
+    note: Mapped[str] = mapped_column(String(200), default="")
+    conversation_id: Mapped[int | None] = mapped_column(
+        ForeignKey("conversations.id", ondelete="SET NULL")
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(TS)
+    answered_at: Mapped[datetime | None] = mapped_column(TS)
+    followup_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class Task(Base):
+    """Follow-up work for staff and kader: a call, a home visit, anything else."""
+
+    __tablename__ = "tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    contact_id: Mapped[int | None] = mapped_column(
+        ForeignKey("contacts.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(10), default="call")  # call | visit | other
+    title: Mapped[str] = mapped_column(String(200))
+    note: Mapped[str] = mapped_column(Text, default="")
+    due: Mapped[date | None] = mapped_column(Date, index=True)
+    assigned_to: Mapped[int | None] = mapped_column(
+        ForeignKey("staff_users.id", ondelete="SET NULL"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(8), default="open")  # open | done
+    outcome: Mapped[str] = mapped_column(Text, default="")
+    source: Mapped[str] = mapped_column(String(20), default="staff")  # staff | missed_doses
+    created_by: Mapped[int | None] = mapped_column(
+        ForeignKey("staff_users.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+    done_at: Mapped[datetime | None] = mapped_column(TS)
 
 
 class KbArticle(Base):

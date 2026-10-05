@@ -55,6 +55,12 @@ class ChannelAdapter(ABC):
     async def send(self, conversation, text: str, *, human_agent: bool = False) -> str | None:
         """Send text to the conversation's identity; return the channel message id."""
 
+    async def send_buttons(self, conversation, text: str, buttons: list[tuple[str, str]], *,
+                           human_agent: bool = False) -> str | None:  # fmt: skip
+        """Text with quick-reply buttons [(id, title)]; plain text where unsupported."""
+        hint = " / ".join(title for _, title in buttons)
+        return await self.send(conversation, f"{text}\n\n({hint})", human_agent=human_agent)
+
     async def send_media(self, conversation, path: Path, mime: str, kind: str, caption: str,
                          filename: str, *, human_agent: bool = False) -> str | None:  # fmt: skip
         """Send a file (kind: image | document | audio | video); return the channel id."""

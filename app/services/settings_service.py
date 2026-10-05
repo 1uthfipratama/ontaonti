@@ -188,6 +188,26 @@ DEFAULTS: dict[str, Any] = {
         "Thank you, we've received your message. 🙏 Our staff are available *{hours}* and will "
         "reply during those hours. In an emergency, go to the nearest IGD or call 119."
     ),
+    # --- medication reminders (app/services/reminders.py) ----------------------
+    "reminder_enabled": False,
+    "reminder_time": "07:00",  # default for newly enrolled patients
+    "reminder_text_id": "Halo {nama} 👋 Sudah minum obat TBC hari ini?",
+    "reminder_text_en": "Hi {name} 👋 Have you taken your TB medicine today?",
+    "reminder_template": "",  # approved WhatsApp template for outside the 24-hour window
+    "reminder_taken_id": "Hebat, {nama}! 💪 Terima kasih sudah minum obat hari ini.",
+    "reminder_taken_en": "Great, {name}! 💪 Thanks for taking your medicine today.",
+    "reminder_missed_id": (
+        "Terima kasih sudah jujur 🙏 Kalau bisa, minum obatnya sekarang ya. Jika ada kendala, "
+        "misalnya obat habis atau efek samping, balas pesan ini. Staf kami siap membantu."
+    ),
+    "reminder_missed_en": (
+        "Thank you for being honest 🙏 If you can, please take it now. If something is in the "
+        "way, like running out or side effects, reply to this message. Our staff can help."
+    ),
+    "missed_followup_hours": 3,
+    "missed_followup_id": "Halo {nama}, obat hari ini sudah diminum? Balas *Sudah* atau *Belum* ya 🙏",
+    "missed_followup_en": "Hi {name}, have you taken today's medicine? Reply *Yes* or *Not yet* 🙏",
+    "missed_case_after": 2,
     # --- WhatsApp pricing (estimates for broadcasts / dashboard) ------------
     "wa_rate_marketing_idr": 680,
     "wa_rate_utility_idr": 330,
@@ -199,7 +219,7 @@ NUMBER_KEYS = {
 }
 BOOL_KEYS = {k for k, v in DEFAULTS.items() if isinstance(v, bool)}
 CHOICES = {"budget_fallback_mode": ("classifier_model", "fixed_reply")}
-TIME_KEYS = {"office_open", "office_close"}
+TIME_KEYS = {"office_open", "office_close", "reminder_time"}
 DAYS_KEYS = {"office_days"}
 
 # Settings page layout: (group, [keys]).
@@ -222,6 +242,10 @@ GROUPS: list[tuple[str, list[str]]] = [
                          "rate_limit_reply_id", "rate_limit_reply_en"]),
     ("Office hours", ["office_hours_enabled", "office_days", "office_open", "office_close",
                       "away_message_id", "away_message_en"]),
+    ("Reminders", ["reminder_enabled", "reminder_time", "reminder_text_id", "reminder_text_en",
+                   "reminder_template", "reminder_taken_id", "reminder_taken_en",
+                   "reminder_missed_id", "reminder_missed_en", "missed_followup_hours",
+                   "missed_followup_id", "missed_followup_en", "missed_case_after"]),
     ("WhatsApp pricing", ["wa_rate_marketing_idr", "wa_rate_utility_idr", "wa_free_tier_messages"]),
 ]  # fmt: skip
 

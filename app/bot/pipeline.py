@@ -34,6 +34,7 @@ from app.services import (
     media,
     office_hours,
     outbound,
+    reminders,
     settings_service,
 )
 from app.services.settings_service import Config
@@ -101,6 +102,10 @@ async def _handle(session, conv: Conversation, msg: Message) -> None:
         await session.commit()
         await outbound.send_text(session, conv, cfg.text("consent_notice", lang),
                                  sender_type=SENDER_BOT, meta={"consent": "notice"})  # fmt: skip
+
+    # a tap on "Sudah" / "Belum" under today's medication reminder
+    if is_text and await reminders.handle_answer(session, conv, msg, cfg, lang):
+        return
 
     if cmd == "subscribe":
         consent.subscribe(session, contact, True, conv.channel, "keyword")

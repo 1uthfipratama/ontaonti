@@ -143,6 +143,27 @@ class WhatsAppAdapter(ChannelAdapter):
         )
         return ((data.get("messages") or [{}])[0]).get("id")
 
+    async def send_buttons(self, conversation, text: str, buttons: list[tuple[str, str]], *,
+                           human_agent: bool = False) -> str | None:  # fmt: skip
+        """Interactive "reply buttons" message (max 3 buttons, 20-character titles)."""
+        data = await self._post(
+            {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": conversation.identity.external_id,
+                "type": "interactive",
+                "interactive": {
+                    "type": "button",
+                    "body": {"text": text[:1024]},
+                    "action": {"buttons": [
+                        {"type": "reply", "reply": {"id": bid, "title": title[:20]}}
+                        for bid, title in buttons[:3]
+                    ]},
+                },
+            }
+        )  # fmt: skip
+        return ((data.get("messages") or [{}])[0]).get("id")
+
     async def send_template(
         self, to: str, name: str, language: str, body_params: list[str]
     ) -> str | None:

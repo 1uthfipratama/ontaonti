@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Search } from "lucide-react";
 
 import { channelName } from "@/components/badges";
+import { JourneyPanel } from "@/components/journey-panel";
 import { MessageBubble } from "@/components/message-bubble";
 import { NativeSelect } from "@/components/native-select";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,8 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
       </div>
 
       <div className="hidden space-y-6 overflow-y-auto border-l border-border bg-card p-5 text-sm xl:block">
+        <JourneyPanel contact={c} />
+
         <Section title={t("contact.channels")}>
           {c.identities.map((i) => (
             <div key={i.id} className="flex justify-between gap-2">

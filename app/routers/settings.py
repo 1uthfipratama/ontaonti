@@ -63,6 +63,10 @@ TEXT_LABELS = {
     "daily_cap_reply": "Daily cap reached reply",
     "rate_limit_reply": "Rate limit reply",
     "away_message": "Out-of-hours message ({jam} / {hours} = the hours)",
+    "reminder_text": "Reminder ({nama} / {name} = first name)",
+    "reminder_taken": "Reply to 'taken'",
+    "reminder_missed": "Reply to 'not yet'",
+    "missed_followup": "Follow-up when unanswered",
 }
 LANG_SUFFIX = {"_id": " · Bahasa Indonesia", "_en": " · English"}
 

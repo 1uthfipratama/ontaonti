@@ -13,7 +13,7 @@ from app.audit import audit
 from app.constants import CASE_CLAIMED, CASE_OPEN, CASE_RESOLVED, CONV_OPEN, MODE_HUMAN
 from app.db import get_session, utcnow
 from app.deps import any_staff, can_act, client_ip
-from app.models import Case, CaseNote, Contact, Conversation, Message, StaffUser
+from app.models import Case, CaseNote, Contact, Conversation, Message, StaffUser, Task
 from app.serializers import iso
 from app.services import cases as case_service
 
@@ -214,6 +214,15 @@ async def summary(
             )
         )
     ).scalar_one()
+    from app.services.reminders import local_today
+
+    my_tasks_due = (
+        await session.execute(
+            select(func.count())
+            .select_from(Task)
+            .where(Task.assigned_to == user.id, Task.status == "open", Task.due <= local_today())
+        )
+    ).scalar_one()
     return {
         "open_cases": sum(by_sev.values()),
         "unclaimed": unclaimed,
@@ -221,4 +230,5 @@ async def summary(
         "high": by_sev.get("high", 0),
         "low": by_sev.get("low", 0),
         "needs_human": needs_human,
+        "my_tasks_due": my_tasks_due,
     }

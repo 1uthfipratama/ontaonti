@@ -64,6 +64,12 @@ async def send_broadcast_recipient(ctx, recipient_id: int) -> None:
             # in-process (tests): retry straight away
 
 
+async def reminder_tick(ctx) -> None:
+    from app.services import reminders
+
+    await reminders.tick()
+
+
 async def reindex_kb(ctx) -> None:
     from app.services import knowledge
 
@@ -73,6 +79,7 @@ async def reindex_kb(ctx) -> None:
 JOBS = {
     "handle_inbound": handle_inbound,
     "reindex_kb": reindex_kb,
+    "reminder_tick": reminder_tick,
     "process_webhook": process_webhook,
     "send_broadcast_recipient": send_broadcast_recipient,
 }
@@ -99,6 +106,9 @@ class WorkerSettings:
     max_tries = 6  # arq-level retries (broadcast backoff); other jobs don't raise Retry
     keep_result = 3600  # arq keeps job ids this long: re-enqueues with the same id are dropped
     if settings.redis_url:
+        from arq import cron
         from arq.connections import RedisSettings
 
         redis_settings = RedisSettings.from_dsn(settings.redis_url)
+        # every minute: medication reminders and their follow-ups
+        cron_jobs = [cron(reminder_tick, second=5, unique=True, run_at_startup=False)]

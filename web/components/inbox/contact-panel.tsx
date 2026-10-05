@@ -4,6 +4,7 @@ import Link from "next/link";
 import useSWR from "swr";
 
 import { channelName, SeverityBadge } from "@/components/badges";
+import { JourneyPanel } from "@/components/journey-panel";
 import { day, timeAgo } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import type { Case, Conversation } from "@/lib/types";
@@ -46,6 +47,8 @@ export function ContactPanel({ id }: { id: number }) {
         <Row label={t("contact.messages")} value={c.opted_out ? <span className="text-destructive">{t("contact.optedOut")}</span> : t("contact.active")} />
         <Row label={t("contact.broadcasts")} value={c.broadcast_opt_in ? t("contact.subscribed") : t("contact.notSubscribed")} />
       </Section>
+
+      <JourneyPanel contact={c} />
 
       <Section title={t("contact.channels")}>
         {c.identities.map((i) => (

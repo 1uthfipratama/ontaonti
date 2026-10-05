@@ -21,6 +21,8 @@ export interface Identity {
   last_seen_at: string | null;
 }
 
+export type Stage = "suspect" | "testing" | "treatment" | "completed" | "lost";
+
 export interface Contact {
   id: number;
   display_name: string;
@@ -30,6 +32,36 @@ export interface Contact {
   broadcast_opt_in: boolean;
   created_at: string;
   identities: Identity[];
+  journey_stage: Stage | null;
+  treatment_start: string | null;
+  treatment_months: number;
+  puskesmas: string;
+  kader_id: number | null;
+  reminder_enabled: boolean;
+  reminder_time: string;
+}
+
+export interface Task {
+  id: number;
+  contact_id: number | null;
+  contact_name: string;
+  kind: "call" | "visit" | "other";
+  title: string;
+  note: string;
+  due: string | null;
+  assigned_to: number | null;
+  assigned_name: string | null;
+  status: "open" | "done";
+  outcome: string;
+  source: string;
+  created_at: string;
+  done_at: string | null;
+}
+
+export interface DoseDay {
+  day: string;
+  status: "pending" | "taken" | "missed" | "skipped";
+  note: string;
 }
 
 export interface Conversation {

@@ -7,7 +7,9 @@ import {
   BarChart3,
   BookOpen,
   FlaskConical,
+  HeartPulse,
   Inbox,
+  ListChecks,
   LifeBuoy,
   LogOut,
   Megaphone,
@@ -23,12 +25,12 @@ import { useT } from "@/lib/i18n";
 import { useStaff } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-type Summary = { open_cases: number; emergency: number; high: number; needs_human: number };
+type Summary = { open_cases: number; emergency: number; high: number; needs_human: number; my_tasks_due: number };
 export type NavItem = {
   href: string;
   label: string; // dictionary key
   icon: typeof Inbox;
-  badge?: boolean;
+  badge?: "cases" | "tasks";
   adminOnly?: boolean;
   actOnly?: boolean;
   auditOnly?: boolean;
@@ -39,8 +41,10 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     group: "nav.conversations",
     items: [
       { href: "/inbox", label: "nav.inbox", icon: Inbox },
-      { href: "/cases", label: "nav.cases", icon: LifeBuoy, badge: true },
+      { href: "/cases", label: "nav.cases", icon: LifeBuoy, badge: "cases" },
       { href: "/contacts", label: "nav.contacts", icon: Users },
+      { href: "/patients", label: "nav.patients", icon: HeartPulse },
+      { href: "/tasks", label: "nav.tasks", icon: ListChecks, badge: "tasks" },
       { href: "/simulator", label: "nav.simulator", icon: FlaskConical, actOnly: true },
     ],
   },
@@ -113,7 +117,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="space-y-0.5">
                 {g.items.map((n) => {
                   const active = path.startsWith(n.href);
-                  const count = n.badge ? (summary?.open_cases ?? 0) : 0;
+                  const count =
+                    n.badge === "cases" ? (summary?.open_cases ?? 0) : n.badge === "tasks" ? (summary?.my_tasks_due ?? 0) : 0;
                   return (
                     <Link
                       key={n.href}
@@ -128,10 +133,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <span className="hidden flex-1 lg:inline">{t(n.label)}</span>
                       {count > 0 && (
                         <span
-                          data-testid="cases-badge"
+                          data-testid={`${n.badge}-badge`}
                           className={cn(
                             "absolute -top-1 right-0 min-w-5 rounded-full px-1.5 text-center text-[11px] font-semibold leading-5 text-white lg:static",
-                            (summary?.emergency ?? 0) > 0 ? "bg-destructive" : "bg-primary",
+                            n.badge === "cases" && (summary?.emergency ?? 0) > 0 ? "bg-destructive" : "bg-primary",
                           )}
                         >
                           {count}

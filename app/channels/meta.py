@@ -106,6 +106,25 @@ class MetaMessagingAdapter(ChannelAdapter):
         )
         return data.get("message_id")
 
+    async def send_buttons(self, conversation, text: str, buttons: list[tuple[str, str]], *,
+                           human_agent: bool = False) -> str | None:  # fmt: skip
+        if not settings.meta_page_id:
+            raise SendError("META_PAGE_ID is not set", code="config")
+        body: dict = {
+            "recipient": {"id": conversation.identity.external_id},
+            "message": {"text": text[: MAX_TEXT[self.channel]], "quick_replies": [
+                {"content_type": "text", "title": title[:20], "payload": bid}
+                for bid, title in buttons[:13]
+            ]},
+            "messaging_type": "MESSAGE_TAG" if human_agent else "RESPONSE",
+        }  # fmt: skip
+        if human_agent:
+            body["tag"] = "HUMAN_AGENT"
+        data = await graph_request(
+            "POST", f"{settings.meta_page_id}/messages", settings.meta_page_access_token, json=body
+        )
+        return data.get("message_id")
+
     async def send_media(self, conversation, path, mime: str, kind: str, caption: str,
                          filename: str, *, human_agent: bool = False) -> str | None:  # fmt: skip
         if self.channel == "instagram":

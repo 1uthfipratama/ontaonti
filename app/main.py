@@ -18,10 +18,12 @@ from app.routers import (
     conversations,
     dashboard,
     inbox_tools,
+    journey,
     knowledge,
     media,
     misc,
     simulator,
+    tasks,
     webhooks,
 )
 from app.routers import (
@@ -78,6 +80,8 @@ for r in (
     auth,
     conversations,
     inbox_tools,
+    journey,
+    tasks,
     knowledge,
     media,
     simulator,

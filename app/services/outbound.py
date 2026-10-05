@@ -36,9 +36,11 @@ async def send_text(
     tokens_out: int = 0,
     cost_idr: float = 0.0,
     human_agent: bool = False,
+    buttons: list[tuple[str, str]] | None = None,
 ) -> Message:
     """Store first (status queued), then send, then record the outcome. A failed
-    send stays visible in the thread with its error instead of vanishing."""
+    send stays visible in the thread with its error instead of vanishing.
+    `buttons`: quick replies [(id, title)] shown under the text."""
     msg = Message(
         conversation_id=conv.id,
         direction=DIR_OUT,
@@ -46,7 +48,7 @@ async def send_text(
         sender_staff_id=staff.id if staff else None,
         text=text,
         status=MSG_QUEUED,
-        meta=meta or {},
+        meta={**(meta or {}), **({"buttons": [t for _, t in buttons]} if buttons else {})},
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cost_idr=cost_idr,
@@ -57,7 +59,11 @@ async def send_text(
     conv.last_preview = text[:200]
     await session.commit()
     try:
-        external_id = await adapter_for(conv).send(conv, text, human_agent=human_agent)
+        adapter = adapter_for(conv)
+        if buttons:
+            external_id = await adapter.send_buttons(conv, text, buttons, human_agent=human_agent)
+        else:
+            external_id = await adapter.send(conv, text, human_agent=human_agent)
         msg.external_id = external_id
         msg.status = MSG_SENT
     except SendError as e:
@@ -115,6 +121,38 @@ async def send_media(
         msg.status = MSG_FAILED
         msg.error = f"unexpected error: {type(e).__name__}"
         log.exception("media send crashed on conversation %s", conv.id)
+    await session.commit()
+    await events.publish("message.created", conversation_id=conv.id, message_id=msg.id)
+    return msg
+
+
+async def send_template(
+    session: AsyncSession,
+    conv: Conversation,
+    name: str,
+    language: str,
+    params: list[str],
+    display_text: str,
+    meta: dict | None = None,
+) -> Message:
+    """An approved WhatsApp template (the only thing allowed outside the 24-hour window)."""
+    msg = Message(
+        conversation_id=conv.id, direction=DIR_OUT, sender_type=SENDER_BOT, text=display_text,
+        status=MSG_QUEUED, meta={**(meta or {}), "template": name},
+    )  # fmt: skip
+    session.add(msg)
+    conv.last_message_at, conv.last_preview = utcnow(), display_text[:200]
+    await session.commit()
+    try:
+        from app.channels.whatsapp import WhatsAppAdapter
+
+        msg.external_id = await WhatsAppAdapter().send_template(
+            conv.identity.external_id, name, language, params
+        )
+        msg.status = MSG_SENT
+    except SendError as e:
+        msg.status, msg.error = MSG_FAILED, str(e)[:500]
+        log.warning("template send failed on conversation %s: %s", conv.id, e)
     await session.commit()
     await events.publish("message.created", conversation_id=conv.id, message_id=msg.id)
     return msg
