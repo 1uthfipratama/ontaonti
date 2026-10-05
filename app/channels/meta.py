@@ -5,6 +5,7 @@ we reply with messaging_type RESPONSE; staff may answer up to 7 days later with
 the HUMAN_AGENT tag (the app needs Meta's Human Agent permission for that).
 """
 
+import json
 import logging
 from datetime import UTC, datetime
 
@@ -104,3 +105,29 @@ class MetaMessagingAdapter(ChannelAdapter):
             "POST", f"{settings.meta_page_id}/messages", settings.meta_page_access_token, json=body
         )
         return data.get("message_id")
+
+    async def send_media(self, conversation, path, mime: str, kind: str, caption: str,
+                         filename: str, *, human_agent: bool = False) -> str | None:  # fmt: skip
+        if self.channel == "instagram":
+            # Instagram only takes attachments by public URL; the hub's files are private.
+            raise SendError("Instagram can't receive files from the hub yet. Send a link instead.")
+        if not settings.meta_page_id:
+            raise SendError("META_PAGE_ID is not set", code="config")
+        form = {
+            "recipient": json.dumps({"id": conversation.identity.external_id}),
+            "message": json.dumps({"attachment": {
+                "type": "file" if kind == "document" else kind,
+                "payload": {"is_reusable": False},
+            }}),
+            "messaging_type": "MESSAGE_TAG" if human_agent else "RESPONSE",
+        }  # fmt: skip
+        if human_agent:
+            form["tag"] = "HUMAN_AGENT"
+        data = await graph_request(
+            "POST", f"{settings.meta_page_id}/messages", settings.meta_page_access_token,
+            data=form, files={"filedata": (filename, path.read_bytes(), mime)},
+        )  # fmt: skip
+        mid = data.get("message_id")
+        if caption:  # Messenger attachments carry no caption: send it as a text after the file
+            await self.send(conversation, caption, human_agent=human_agent)
+        return mid

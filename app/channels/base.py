@@ -8,6 +8,7 @@ parse_inbound returns a list: Meta batches several messages into one webhook.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 
 from app.db import utcnow
 
@@ -53,6 +54,15 @@ class ChannelAdapter(ABC):
     @abstractmethod
     async def send(self, conversation, text: str, *, human_agent: bool = False) -> str | None:
         """Send text to the conversation's identity; return the channel message id."""
+
+    async def send_media(self, conversation, path: Path, mime: str, kind: str, caption: str,
+                         filename: str, *, human_agent: bool = False) -> str | None:  # fmt: skip
+        """Send a file (kind: image | document | audio | video); return the channel id."""
+        raise SendError(f"Sending files isn't supported on {self.channel}")
+
+    async def download_media(self, media_id: str) -> tuple[bytes, str]:
+        """(bytes, mime type) of an inbound attachment."""
+        raise SendError(f"Downloading media isn't supported on {self.channel}")
 
     async def mark_read(self, external_message_id: str) -> None:
         return None

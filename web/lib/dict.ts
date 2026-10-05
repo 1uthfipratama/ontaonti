@@ -227,8 +227,11 @@ const id: Record<string, string> = {
   "sim.s.subscribe": "Berlangganan (LANGGANAN)",
   "sim.s.stop": "Berhenti (STOP)",
   "sim.s.start": "Mulai lagi (MULAI)",
-  "sim.s.photo": "Kirim foto",
   "sim.staff": "Staf",
+  "sim.record": "Rekam pesan suara",
+  "sim.stopRecording": "Berhenti & kirim",
+  "sim.recording": "Merekam…",
+  "sim.micDenied": "Mikrofon tidak bisa dipakai di browser ini.",
 
   // dashboard
   "dash.convToday": "Percakapan hari ini",
@@ -652,8 +655,11 @@ const en: Record<string, string> = {
   "sim.s.subscribe": "Subscribe (LANGGANAN)",
   "sim.s.stop": "Opt out (STOP)",
   "sim.s.start": "Opt back in (MULAI)",
-  "sim.s.photo": "Send a photo",
   "sim.staff": "Staff",
+  "sim.record": "Record a voice note",
+  "sim.stopRecording": "Stop & send",
+  "sim.recording": "Recording…",
+  "sim.micDenied": "The microphone isn't available in this browser.",
 
   "dash.convToday": "Conversations today",
   "dash.thisMonth": "{n} this month",

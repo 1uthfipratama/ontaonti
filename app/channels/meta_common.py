@@ -47,14 +47,16 @@ def _error_text(r: httpx.Response) -> tuple[str, str | None]:
 
 
 async def graph_request(method: str, path: str, token: str, *, json: dict | None = None,
-                        params: dict | None = None) -> dict:  # fmt: skip
-    """Call the Graph API with a Bearer token (never in the URL). Raises SendError."""
+                        params: dict | None = None, data: dict | None = None,
+                        files: dict | None = None) -> dict:  # fmt: skip
+    """Call the Graph API with a Bearer token (never in the URL). Raises SendError.
+    `data` + `files` send multipart/form-data (media uploads)."""
     if not token:
         raise SendError("missing access token", retryable=False, code="config")
     try:
-        async with httpx.AsyncClient(timeout=20) as http:
+        async with httpx.AsyncClient(timeout=60 if files else 20) as http:
             r = await http.request(
-                method, graph_url(path), json=json, params=params,
+                method, graph_url(path), json=json, params=params, data=data, files=files,
                 headers={"Authorization": f"Bearer {token}"},
             )  # fmt: skip
     except httpx.HTTPError as e:
@@ -67,3 +69,15 @@ async def graph_request(method: str, path: str, token: str, *, json: dict | None
         return r.json()
     except ValueError:
         return {}
+
+
+async def download(url: str, token: str) -> tuple[bytes, str]:
+    """Fetch a media URL that needs the Bearer token (WhatsApp lookaside URLs)."""
+    try:
+        async with httpx.AsyncClient(timeout=60, follow_redirects=True) as http:
+            r = await http.get(url, headers={"Authorization": f"Bearer {token}"})
+    except httpx.HTTPError as e:
+        raise SendError(f"network error: {type(e).__name__}", retryable=True) from e
+    if r.status_code >= 400:
+        raise SendError(f"media download failed: HTTP {r.status_code}")
+    return r.content, r.headers.get("content-type", "")

@@ -8,15 +8,16 @@ export class ApiError extends Error {
   }
 }
 
-type Options = { method?: string; json?: unknown };
+type Options = { method?: string; json?: unknown; form?: FormData };
 
 export async function api<T = unknown>(path: string, opts: Options = {}): Promise<T> {
   const hasBody = opts.json !== undefined;
   const res = await fetch(API_URL + path, {
-    method: opts.method ?? (hasBody ? "POST" : "GET"),
+    method: opts.method ?? (hasBody || opts.form ? "POST" : "GET"),
     credentials: "include",
+    // FormData sets its own multipart Content-Type (with the boundary).
     headers: hasBody ? { "Content-Type": "application/json" } : undefined,
-    body: hasBody ? JSON.stringify(opts.json) : undefined,
+    body: hasBody ? JSON.stringify(opts.json) : opts.form,
   });
   if (!res.ok) {
     let detail = res.statusText;

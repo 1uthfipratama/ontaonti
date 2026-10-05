@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
-import { Loader2, SendHorizontal, Wand2 } from "lucide-react";
+import { Loader2, Paperclip, SendHorizontal, Wand2, X } from "lucide-react";
 
 import { channelName, SeverityBadge } from "@/components/badges";
 import { MessageBubble } from "@/components/message-bubble";
@@ -131,7 +131,9 @@ function Composer({ conv, onSent }: { conv: Conversation; onSent: () => void }) 
   const [busy, setBusy] = useState(false);
   const [drafting, setDrafting] = useState(false);
   const [pick, setPick] = useState(0);
+  const [file, setFile] = useState<File | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
   const { data: replies } = useSWR<SavedReply[]>("/saved-replies");
 
   // "/" at the start of the box (or after whitespace) opens the saved-reply list.
@@ -151,11 +153,17 @@ function Composer({ conv, onSent }: { conv: Conversation; onSent: () => void }) 
   }
 
   async function submit() {
-    if (!text.trim()) return;
+    if (!text.trim() && !file) return;
     setBusy(true);
     try {
       if (tab === "note") await api(`/conversations/${conv.id}/notes`, { json: { text } });
-      else await api(`/conversations/${conv.id}/messages`, { json: { text } });
+      else if (file) {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("caption", text);
+        await api(`/conversations/${conv.id}/media`, { form });
+        setFile(null);
+      } else await api(`/conversations/${conv.id}/messages`, { json: { text } });
       setText("");
     } catch (e) {
       toast.error(errorMessage(e, t));
@@ -212,6 +220,15 @@ function Composer({ conv, onSent }: { conv: Conversation; onSent: () => void }) 
         )}
       </div>
       {!note && conv.opted_out && <p className="mb-2 text-xs text-destructive">{t("thread.optedOut")}</p>}
+      {!note && file && (
+        <div className="mb-2 inline-flex max-w-full items-center gap-2 rounded-md bg-secondary py-1 pr-1 pl-2.5 text-sm" data-testid="attachment">
+          <Paperclip className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate">{file.name}</span>
+          <button onClick={() => setFile(null)} aria-label={t("common.delete")} className="rounded p-0.5 hover:bg-muted">
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
       <div className="relative flex items-end gap-2">
         {matches.length > 0 && (
           <div
@@ -272,7 +289,35 @@ function Composer({ conv, onSent }: { conv: Conversation; onSent: () => void }) 
           }
           className="max-h-40 min-h-10 flex-1 bg-card"
         />
-        <Button onClick={submit} disabled={busy || !text.trim()} aria-label={note ? t("thread.addNote") : t("thread.send")}>
+        {!note && (
+          <>
+            <input
+              ref={picker}
+              type="file"
+              hidden
+              data-testid="file-input"
+              accept="image/jpeg,image/png,application/pdf,.doc,.docx,.xls,.xlsx,.txt,audio/mpeg,audio/ogg,video/mp4"
+              onChange={(e) => {
+                setFile(e.target.files?.[0] ?? null);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => picker.current?.click()}
+              title={t("thread.attach")}
+              aria-label={t("thread.attach")}
+            >
+              <Paperclip />
+            </Button>
+          </>
+        )}
+        <Button
+          onClick={submit}
+          disabled={busy || (!text.trim() && !(file && !note))}
+          aria-label={note ? t("thread.addNote") : t("thread.send")}
+        >
           {!note && <SendHorizontal />} {note ? t("thread.addNote") : t("thread.send")}
         </Button>
       </div>

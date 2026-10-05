@@ -40,6 +40,8 @@ os.environ.update(
         "WEB_BASE_URL": "http://localhost:3000",
         "TEST_MODE": "true",
         "LOG_LEVEL": "WARNING",
+        "MEDIA_DIR": str(_DB.parent / "media"),
+        "TRANSCRIBE_PROVIDER": "fake",
     }
 )
 

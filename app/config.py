@@ -32,6 +32,7 @@ SECRET_FIELDS = (
     "meta_verify_token",
     "smtp_password",
     "postgres_password",
+    "transcribe_api_key",
 )
 
 
@@ -99,6 +100,15 @@ class Settings(BaseSettings):
     # kept low for a test number).
     broadcast_rate_per_second: float = 5.0
     broadcast_max_attempts: int = 3
+
+    # Photos, voice notes and documents (received and sent).
+    media_dir: Path = ROOT / "data" / "media"
+    media_max_mb: int = 16
+    # Voice notes -> text: local (faster-whisper on CPU) | groq | fake | "" (off).
+    transcribe_provider: str = "local"
+    whisper_model: str = "small"  # local: tiny | base | small | medium
+    whisper_dir: Path = ROOT / "data" / "whisper"
+    transcribe_api_key: str = ""  # groq
 
     worker_max_jobs: int = 10
     test_mode: bool = Field(default=False, description="set by the test suite")

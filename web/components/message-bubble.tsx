@@ -5,7 +5,7 @@ import { clock, idr } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import type { Message } from "@/lib/types";
 import { SeverityBadge } from "@/components/badges";
-import { MessageMedia } from "@/components/message-media";
+import { MessageMedia, mediaSrc, textIsPlaceholder } from "@/components/message-media";
 import { WaText } from "@/components/wa-text";
 
 export function MessageBubble({ m, staffName }: { m: Message; staffName?: string }) {
@@ -56,7 +56,7 @@ export function MessageBubble({ m, staffName }: { m: Message; staffName?: string
         )}
       >
         <MessageMedia m={m} />
-        {m.text && (
+        {m.text && !(mediaSrc(m) && textIsPlaceholder(m)) && (
           <div className="whitespace-pre-wrap break-words">
             <WaText text={m.text} />
           </div>

@@ -26,7 +26,15 @@ from app.db import SessionLocal
 from app.llm import LLMError
 from app.locks import conversation_lock
 from app.models import Conversation, Message
-from app.services import cases, consent, limits, office_hours, outbound, settings_service
+from app.services import (
+    cases,
+    consent,
+    limits,
+    media,
+    office_hours,
+    outbound,
+    settings_service,
+)
 from app.services.settings_service import Config
 
 log = logging.getLogger("onti.pipeline")
@@ -45,9 +53,12 @@ async def handle_inbound(message_id: int) -> None:
 
 async def _handle(session, conv: Conversation, msg: Message) -> None:
     cfg = await settings_service.load(session)
+    if msg.kind != "text":
+        await media.prepare_inbound(session, conv, msg, cfg)  # download; voice note -> text
     text = msg.text or ""
     lang = detect(text)
-    is_text = msg.kind == "text"
+    # A transcribed voice note is handled like a typed message.
+    is_text = msg.kind == "text" or bool((msg.meta or {}).get("transcript"))
     contact = conv.contact
     cmd = consent.command(text) if is_text else None
 

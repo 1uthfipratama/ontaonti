@@ -82,6 +82,19 @@ test("saved reply, internal note and label in a thread", async ({ page }) => {
   await page.getByTestId("label-input").fill("Uji e2e");
   await page.getByTestId("label-input").press("Enter");
   await expect(page.getByTestId("thread-title").locator("..")).toContainText("Uji e2e");
+
+  // A file with a caption: shown as a file link in the staff bubble.
+  await page.getByTestId("tab-reply").click();
+  await page.getByTestId("file-input").setInputFiles({
+    name: "jadwal-kontrol.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4 e2e"),
+  });
+  await expect(page.getByTestId("attachment")).toContainText("jadwal-kontrol.pdf");
+  await box.fill("Ini jadwal kontrolnya ya");
+  await page.getByRole("button", { name: "Kirim", exact: true }).click();
+  await expect(page.getByTestId("bubble-agent").last()).toContainText("jadwal-kontrol.pdf");
+  await expect(page.getByTestId("bubble-agent").last()).toContainText("Ini jadwal kontrolnya ya");
 });
 
 test("an emergency message gets the fixed safety reply and opens a case", async ({ page }) => {

@@ -12,6 +12,7 @@ arq==0.28.0
 itsdangerous==2.2.0
 bcrypt==5.0.0
 httpx==0.28.1
+python-multipart==0.0.32
 anthropic==1.11.0
 pyyaml==6.0.3
 tzdata==2026.4
@@ -20,3 +21,7 @@ fastembed==0.8.1
 sqlite-vec==0.1.9
 tokenizers==0.23.2
 numpy==2.5.3
+# Voice-note transcription (TRANSCRIBE_PROVIDER=local)
+faster-whisper==1.2.1
+# faster-whisper 1.2.1 passes metadata_errors to av.open(), removed after PyAV 17
+av==17.1.0

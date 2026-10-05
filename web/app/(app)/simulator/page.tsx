@@ -4,9 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
-import { SendHorizontal } from "lucide-react";
+import { Mic, Paperclip, SendHorizontal, Square } from "lucide-react";
 
 import { channelName } from "@/components/badges";
+import { MessageMedia, mediaSrc, textIsPlaceholder } from "@/components/message-media";
 import { NativeSelect } from "@/components/native-select";
 import { WaText } from "@/components/wa-text";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,6 @@ const SAMPLES: { key: string; text: string; kind?: string }[] = [
   { key: "subscribe", text: "LANGGANAN" },
   { key: "stop", text: "STOP" },
   { key: "start", text: "MULAI" },
-  { key: "photo", text: "", kind: "image" },
 ];
 
 export default function SimulatorPage() {
@@ -40,7 +40,9 @@ export default function SimulatorPage() {
   const [name, setName] = useState("Budi (simulasi)");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState<MediaRecorder | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
 
   const { data: sims } = useSWR<Conversation[]>("/simulator/conversations");
   const conv = useMemo(
@@ -53,13 +55,57 @@ export default function SimulatorPage() {
     bottom.current?.scrollIntoView({ block: "end" });
   }, [messages?.length]);
 
+  const refresh = () =>
+    mutate((k) => typeof k === "string" && (k.startsWith("/simulator") || k.startsWith("/conversations")));
+
+  async function sendFile(file: Blob, filename: string) {
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.append("file", file, filename);
+      form.append("channel", channel);
+      form.append("user_id", userId);
+      form.append("name", name);
+      await api("/simulator/media", { form });
+      refresh();
+    } catch (e) {
+      toast.error(errorMessage(e, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Record a voice note in the browser (press once to start, again to send).
+  async function toggleRecording() {
+    if (recording) {
+      recording.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      rec.ondataavailable = (e) => chunks.push(e.data);
+      rec.onstop = () => {
+        stream.getTracks().forEach((tr) => tr.stop());
+        setRecording(null);
+        const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        if (blob.size > 0) sendFile(blob, "pesan-suara.webm");
+      };
+      rec.start();
+      setRecording(rec);
+    } catch {
+      toast.error(t("sim.micDenied"));
+    }
+  }
+
   async function send(body: string, kind = "text") {
     if (kind === "text" && !body.trim()) return;
     setBusy(true);
     try {
       await api("/simulator/messages", { json: { channel, user_id: userId, name, text: body, kind } });
       setText("");
-      mutate((k) => typeof k === "string" && (k.startsWith("/simulator") || k.startsWith("/conversations")));
+      refresh();
     } catch (e) {
       toast.error(errorMessage(e, t));
     } finally {
@@ -173,9 +219,12 @@ export default function SimulatorPage() {
                       {!mine && m.sender_type === "agent" && (
                         <div className="mb-0.5 text-xs font-semibold text-primary">{t("sim.staff")}</div>
                       )}
-                      <div className="whitespace-pre-wrap break-words">
-                        <WaText text={m.text} />
-                      </div>
+                      <MessageMedia m={m} />
+                      {m.text && !(mediaSrc(m) && textIsPlaceholder(m)) && (
+                        <div className="whitespace-pre-wrap break-words">
+                          <WaText text={m.text} />
+                        </div>
+                      )}
                       <div className={cn("mt-1 text-right text-[10px]", mine ? "text-white/70" : "text-muted-foreground")}>
                         {clock(m.created_at)}
                       </div>
@@ -192,12 +241,40 @@ export default function SimulatorPage() {
               send(text);
             }}
           >
+            <input
+              ref={picker}
+              type="file"
+              hidden
+              accept="image/*,audio/*,application/pdf"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) sendFile(f, f.name);
+                e.target.value = "";
+              }}
+            />
+            <Button type="button" variant="ghost" size="icon" onClick={() => picker.current?.click()} aria-label={t("thread.attach")} disabled={busy}>
+              <Paperclip />
+            </Button>
             <Input
               data-testid="sim-input"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={t("sim.placeholder")}
+              placeholder={recording ? t("sim.recording") : t("sim.placeholder")}
+              disabled={Boolean(recording)}
             />
+            {!text.trim() && (
+              <Button
+                type="button"
+                size="icon"
+                variant={recording ? "destructive" : "ghost"}
+                onClick={toggleRecording}
+                aria-label={recording ? t("sim.stopRecording") : t("sim.record")}
+                title={recording ? t("sim.stopRecording") : t("sim.record")}
+                disabled={busy}
+              >
+                {recording ? <Square /> : <Mic />}
+              </Button>
+            )}
             <Button type="submit" size="icon" disabled={busy || !text.trim()} data-testid="sim-send" aria-label={t("thread.send")}>
               <SendHorizontal />
             </Button>

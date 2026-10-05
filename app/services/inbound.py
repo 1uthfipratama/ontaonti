@@ -119,7 +119,11 @@ async def ingest(session: AsyncSession, im: InternalMessage) -> Ingested | None:
         external_id=im.external_message_id,
         status=MSG_RECEIVED,
         created_at=im.timestamp,
-        meta={"user_name": im.user_name} if im.user_name else {},
+        meta={
+            **({"user_name": im.user_name} if im.user_name else {}),
+            # The text is only a "[pesan suara]"-style label: the UI hides it next to the file.
+            **({"placeholder": True} if im.kind != "text" and not im.text else {}),
+        },
     )
     session.add(msg)
     ident.last_seen_at = im.timestamp

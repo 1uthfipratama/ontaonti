@@ -10,6 +10,8 @@ x-backend: &backend
     DATABASE_URL: postgresql+asyncpg://onti:${POSTGRES_PASSWORD:-onti_dev_only}@db:5432/onti
     REDIS_URL: redis://redis:6379/0
     DATA_DIR: /app/data/kb
+    MEDIA_DIR: /app/data/media
+    WHISPER_DIR: /app/data/whisper
     # Shell overrides win, e.g. `LLM_PROVIDER=fake docker compose up` for an offline demo.
     LLM_PROVIDER: ${LLM_PROVIDER:-groq}
   volumes:

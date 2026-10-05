@@ -8,7 +8,7 @@ import logging
 from datetime import UTC, datetime
 
 from app.channels.base import ChannelAdapter, InternalMessage, SendError, StatusUpdate
-from app.channels.meta_common import graph_request
+from app.channels.meta_common import download, graph_request
 from app.config import settings
 
 log = logging.getLogger("onti.whatsapp")
@@ -153,6 +153,41 @@ class WhatsAppAdapter(ChannelAdapter):
             ]
         data = await self._post(
             {"messaging_product": "whatsapp", "to": to, "type": "template", "template": template}
+        )
+        return ((data.get("messages") or [{}])[0]).get("id")
+
+    async def download_media(self, media_id: str) -> tuple[bytes, str]:
+        info = await graph_request("GET", media_id, settings.wa_access_token)
+        if not info.get("url"):
+            raise SendError("media URL missing in Graph response")
+        data, mime = await download(info["url"], settings.wa_access_token)
+        return data, info.get("mime_type") or mime
+
+    async def send_media(self, conversation, path, mime: str, kind: str, caption: str,
+                         filename: str, *, human_agent: bool = False) -> str | None:  # fmt: skip
+        phone_id = await phone_number_id()
+        if not phone_id:
+            raise SendError("WA_PHONE_NUMBER_ID is not set", code="config")
+        up = await graph_request(
+            "POST", f"{phone_id}/media", settings.wa_access_token,
+            data={"messaging_product": "whatsapp", "type": mime},
+            files={"file": (filename, path.read_bytes(), mime)},
+        )  # fmt: skip
+        if not up.get("id"):
+            raise SendError("upload returned no media id")
+        obj: dict = {"id": up["id"]}
+        if caption and kind in ("image", "video", "document"):
+            obj["caption"] = caption[:1024]
+        if kind == "document":
+            obj["filename"] = filename
+        data = await self._post(
+            {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": conversation.identity.external_id,
+                "type": kind,
+                kind: obj,
+            }
         )
         return ((data.get("messages") or [{}])[0]).get("id")
 

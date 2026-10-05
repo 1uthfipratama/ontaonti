@@ -57,6 +57,7 @@ DEFAULTS: dict[str, Any] = {
     "max_input_chars": 500,
     "max_output_tokens": 400,
     "max_reply_chars": 900,
+    "transcribe_voice": True,
     # --- safety ------------------------------------------------------------
     "flag_rules": None,  # None = config/flags.yaml
     "classifier_enabled": True,
@@ -204,7 +205,8 @@ DAYS_KEYS = {"office_days"}
 # Settings page layout: (group, [keys]).
 GROUPS: list[tuple[str, list[str]]] = [
     ("Bot", ["persona_prompt", "model_answer", "model_classifier", "history_turns",
-             "retrieval_k", "max_input_chars", "max_output_tokens", "max_reply_chars"]),
+             "retrieval_k", "max_input_chars", "max_output_tokens", "max_reply_chars",
+             "transcribe_voice"]),
     ("Safety", ["classifier_enabled", "safety_emergency_id", "safety_emergency_en",
                 "safety_self_harm_id", "safety_self_harm_en", "safety_adverse_drug_id",
                 "safety_adverse_drug_en", "safety_adherence_id", "safety_adherence_en",

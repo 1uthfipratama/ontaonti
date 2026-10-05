@@ -31,3 +31,7 @@ class SimulatorAdapter(ChannelAdapter):
 
     async def send(self, conversation, text: str, *, human_agent: bool = False) -> str | None:
         return f"sim-out-{uuid.uuid4().hex}"
+
+    async def send_media(self, conversation, path, mime: str, kind: str, caption: str,
+                         filename: str, *, human_agent: bool = False) -> str | None:  # fmt: skip
+        return f"sim-out-{uuid.uuid4().hex}"
