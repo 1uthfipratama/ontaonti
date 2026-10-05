@@ -111,6 +111,22 @@ Set `ENABLE_MESSENGER=true` / `ENABLE_INSTAGRAM=true`, `META_PAGE_ID`,
 subscribe to `messages`, `message_deliveries` and `message_reads`. Staff replies
 after 24 h use the `HUMAN_AGENT` tag, which needs Meta's Human Agent permission.
 
+## Voice notes, reminders, backups
+
+- **Voice notes** are transcribed on the worker's CPU by default
+  (`TRANSCRIBE_PROVIDER=local`, Whisper `small`). The first voice note downloads the
+  model (~460 MB) into the Docker volume. Use `base` on a small server, `groq` (with
+  `TRANSCRIBE_API_KEY`) for fast, low-cost hosted transcription, or an
+  empty value to switch it off.
+- **Medication reminders** are off until you switch them on in Settings → Bot,
+  keamanan & biaya → Pengingat obat, and per patient in the contact panel (stage
+  "Pengobatan"). For patients who haven't chatted in 24 hours WhatsApp only allows an
+  approved template: create one in WhatsApp Manager with two quick-reply buttons
+  (Sudah / Belum) and one variable for the first name, then put its name in
+  "Template WhatsApp".
+- **Backups** run automatically (the `backup` service) into `./backups`. Restore
+  steps and hosting on a real server: [HOSTING.md](HOSTING.md).
+
 ## Tests
 
 ```powershell

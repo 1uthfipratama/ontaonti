@@ -285,6 +285,10 @@ const id: Record<string, string> = {
   "dash.screenings": "Skrining",
   "dash.screeningsSub": "{n} disarankan periksa · 30 hari",
   "dash.export": "Unduh CSV",
+  "dash.csv.patients": "Pasien",
+  "dash.csv.doses": "Minum obat",
+  "dash.csv.screenings": "Skrining",
+  "dash.csv.cases": "Kasus",
 
   // settings
   "settings.channels": "Kanal",
@@ -811,6 +815,10 @@ const en: Record<string, string> = {
   "dash.screenings": "Screenings",
   "dash.screeningsSub": "{n} advised to get tested · 30 days",
   "dash.export": "Download CSV",
+  "dash.csv.patients": "Patients",
+  "dash.csv.doses": "Doses",
+  "dash.csv.screenings": "Screenings",
+  "dash.csv.cases": "Cases",
 
   "settings.channels": "Channels",
   "settings.botSafety": "Bot, safety & costs",

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -18,15 +18,24 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Onti Erlina Hub",
-  description: "Omnichannel inbox and TB companion chatbot",
+  title: "Onti Erlina",
+  description: "Kotak masuk dan pendamping TBC untuk staf",
+  // Installed on a phone's home screen it opens full-screen, like an app.
+  appleWebApp: { capable: true, title: "Onti Erlina", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#121417" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // next-themes sets the "dark" class on <html> before React hydrates.
     <html
-      lang="en"
+      lang="id"
       className={`${jakarta.variable} ${dmMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >

@@ -16,6 +16,13 @@ replacement for Mekari Qontak. **Prototype — test data only.**
   rate limit, retries and delivery/read stats.
 - **Cost controls**: monthly AI budget with alert and fallback, per-contact rate
   limit and daily cap, token and cost logging per call.
+- **TB programme**: patient journey board, daily medication reminders with
+  Sudah / Belum buttons and missed-dose follow-up, symptom screening over chat
+  ("SKRINING"), kader tasks, programme reports and CSV exports.
+- **Staff tools**: Bahasa Indonesia UI (English switch), saved replies, notes,
+  labels, AI-suggested replies, photos/files/voice notes (transcribed), knowledge
+  editor with an unanswered-questions list, office hours, two-step verification,
+  installable app, daily backups.
 
 Stack: FastAPI · SQLAlchemy 2 + Alembic · PostgreSQL · Redis + arq · SSE ·
 Next.js 16 + Tailwind + shadcn/ui · Groq or Anthropic · fastembed
@@ -32,6 +39,8 @@ docker compose up --build     # http://localhost:3000
 - [docs/DEMO.md](docs/DEMO.md): step-by-step demo script
 - [docs/FEATURES.md](docs/FEATURES.md): everything the app does today
 - [docs/ROADMAP.md](docs/ROADMAP.md): Mekari Qontak parity plan, and where we go further
+- [docs/HOSTING.md](docs/HOSTING.md): running it on a real server, HTTPS, backups, restore
+- [docs/PROGRESS.md](docs/PROGRESS.md): where things stand and what's next
 - [kb/README.md](kb/README.md): the knowledge base (**draft, needs medical review**)
 - [rag/VENDORED.md](rag/VENDORED.md): what was reused from thesis-rag
 

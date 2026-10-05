@@ -12,6 +12,7 @@ __pycache__/
 
 # Generated data (KB index, uploads, local SQLite)
 data/
+backups/
 *.db
 *.sqlite
 

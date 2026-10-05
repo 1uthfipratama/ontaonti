@@ -94,7 +94,44 @@ services:
       - api
     restart: unless-stopped
 
+  # Daily backups of the database and media files into ./backups (keeps 14 days).
+  backup:
+    image: postgres:16-alpine
+    entrypoint: ["sh", "/backup.sh"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-onti_dev_only}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+    volumes:
+      - ./scripts/backup.sh:/backup.sh:ro
+      - ./backups:/backups
+      - kbdata:/data:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # HTTPS on a real server (see docs/HOSTING.md):
+  #   WEB_DOMAIN=hub.example.org API_DOMAIN=api.example.org docker compose --profile https up -d
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN:-}
+      API_DOMAIN: ${API_DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
   kbdata:
+  caddydata:

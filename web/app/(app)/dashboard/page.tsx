@@ -5,6 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 
+import { ProgrammeCard } from "@/components/programme-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { idr } from "@/lib/format";
 import { useT, type T } from "@/lib/i18n";
@@ -185,6 +186,8 @@ export default function DashboardPage() {
           <Tile label={t("dash.caseLow")} value={String(cases.low)} icon={<Info className="size-3.5 text-[var(--viz-warning)]" />} />
         </Link>
       </section>
+
+      <ProgrammeCard />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

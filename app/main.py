@@ -22,6 +22,7 @@ from app.routers import (
     knowledge,
     media,
     misc,
+    reports,
     simulator,
     tasks,
     webhooks,
@@ -89,6 +90,7 @@ for r in (
     contacts,
     broadcasts,
     dashboard,
+    reports,
     settings_router,
     webhooks,
 ):

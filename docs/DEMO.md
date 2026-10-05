@@ -1,4 +1,4 @@
-# Demo script (about 10 minutes)
+# Demo script (about 15 minutes)
 
 Works fully offline with the Simulator. Use a real LLM key for real answers, or
 `LLM_PROVIDER=fake` for canned ones. Optional: `docker compose exec api python
@@ -67,3 +67,27 @@ sent → delivered → read from Meta's status webhooks.
   and the fallback to `fixed_reply`, then ask a question: the bot sends the fixed
   reply and opens a BUDGET case. Emergency keywords still work over budget.
 - **Audit log** shows every view, reply, toggle and setting change.
+
+## 8. Voice note
+Simulator → tap the **microphone**, say a question (e.g. "berapa lama pengobatan TBC?"),
+tap again to send. In the Inbox the bubble has a player and the **Transkrip**; the
+bot answers it like a typed question.
+
+## 9. TB screening
+Simulator → quick message **Skrining TBC**. Answer the five questions with the
+**Ya / Tidak** buttons (say *Ya* to the first). The result suggests testing; the
+contact appears under **Terduga** on **Pasien**, with a follow-up task in **Tugas**.
+
+## 10. Medication reminder
+In the Inbox contact panel set **Tahap** to *Pengobatan*, switch on **Pengingat obat**
+and set its time to a minute ago. Switch on reminders in Settings → Bot, keamanan &
+biaya → **Pengingat obat**. Within a minute the Simulator shows "Sudah minum obat hari
+ini?" with **Sudah / Belum**. Tap one: the bot thanks the patient and the dose dots
+in the contact panel update. Saying *Belum* on consecutive days (2 by default) opens
+an adherence case and a call task for the kader.
+
+## 11. Knowledge gaps
+Ask something the knowledge base doesn't cover (e.g. "apakah ada bantuan uang
+transport?"). The bot says honestly it doesn't know, and the question appears under
+**Pengetahuan → Belum terjawab**. Add the answer to an article, **Terbitkan**, ask
+again: the bot now answers and cites the article.

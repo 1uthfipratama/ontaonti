@@ -1,0 +1,15 @@
+# HTTPS in front of the hub (compose profile "https"). Caddy gets and renews
+# Let's Encrypt certificates for both domains automatically. Point both DNS
+# records at this server first, then: docker compose --profile https up -d
+{$WEB_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:8000 {
+		# live inbox updates (server-sent events) must not be buffered
+		flush_interval -1
+	}
+}

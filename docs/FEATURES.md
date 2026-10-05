@@ -1,83 +1,112 @@
 # What Onti Erlina Hub does today
 
-A complete inventory of the prototype as of 2026-10-05: **what's built and tested**.
-What's missing compared with Mekari Qontak is in [ROADMAP.md](ROADMAP.md).
+Inventory as of 2026-10-05: **built and tested**. What's still missing compared with
+Mekari Qontak is in [ROADMAP.md](ROADMAP.md).
 
 ## 1. Channels
 
 | Channel | State |
 |---|---|
-| **WhatsApp (Cloud API)** | Live webhook: verification handshake, signed requests only (`X-Hub-Signature-256`), 200 at once, queued processing, duplicate deliveries dropped. Text in/out, delivery/read/failed status, mark-as-read, 24-hour window, polite reply to photos/voice notes/stickers, phone and account IDs learned from the first webhook. Tested end to end with the Meta test number (delivery blocked only by the personal Meta account's verification status). |
-| **Messenger** | Built, behind a feature flag: webhook, signature check, text in/out, delivery and read receipts, staff replies after 24 h with the `HUMAN_AGENT` tag (up to 7 days). Not yet tried against a real Page. |
-| **Instagram DM** | Same as Messenger, behind its own flag. |
-| **Simulator** | Admin page to chat as a fake WhatsApp/Messenger/Instagram user. Same pipeline as the real channels, nothing sent to Meta. Quick buttons for normal, risky and consent messages. |
+| **WhatsApp (Cloud API)** | Signed webhooks, queued processing, duplicates dropped. Text, photos, documents, voice notes and video in and out; reply buttons; delivery/read/failed status; mark-as-read; 24-hour window; templates outside it. Tested end to end with the Meta test number (delivery blocked only by the personal Meta account's verification). |
+| **Messenger / Instagram** | Built behind feature flags: text, quick replies, files (Messenger), receipts, staff replies after 24 h with the `HUMAN_AGENT` tag. Not yet tried against a real Page. |
+| **Simulator** | Chat as a fake user on any channel through the real pipeline. Quick messages, attach a file, **record a voice note in the browser**, tap reply buttons. |
 
-## 2. Inbox
+## 2. Staff interface
 
-- Three panels: conversation list, thread, contact panel. Live updates without refresh (SSE).
-- Filters: channel, open/resolved, flag level, bot/staff mode, search by name or text.
-- Unread counts, severity dot on flagged conversations.
-- **Bot ⇄ Staff switch** per conversation; a staff reply hands the chat to staff automatically.
-- Staff replies respect each channel's rules (24 h on WhatsApp, 7 days with tag on Messenger/IG) and are blocked for opted-out contacts.
-- Assign to me, Resolve / Reopen, system notes in the thread (mode changes, handovers).
-- **AI summary** for a staff member taking over (never sent to the patient).
-- Per message: sources used by the bot, tokens and cost in Rupiah, delivery status, failure reason.
+- **Bahasa Indonesia by default**, English with the ID | EN switch (per browser).
+- Light and dark mode, Mekari Pixel / Talenta-style look, Plus Jakarta Sans + DM Mono.
+- **Installable app** (PWA) on phones and desktops.
 
-## 3. The bot (Onti Erlina)
+## 3. Inbox
 
-- Answers **only from the TB knowledge base** (`kb/`, 10 draft articles) using the reused thesis-rag retrieval: keyword + semantic search with a multilingual model, so Indonesian and English questions both work.
-- Persona: warm TB companion, Bahasa Indonesia by default (English if the user writes English), never diagnoses, never gives or changes medication, points to the puskesmas, says so when the material doesn't cover a question.
-- One WhatsApp-formatted message, aiming for 400–700 characters (hard cap 900); a reply cut off by the length limit is trimmed to its last full sentence.
-- Context: last 6 messages; fixed number of passages; input capped at 500 characters.
-- LLM provider switchable: Anthropic (Claude Sonnet 5.5 answers, Haiku 4.5 classifier), Groq (Llama), or an offline demo mode.
+- Three panels, live updates (SSE). Filters: channel, status, flag, bot/staff, **label**, search.
+- **Reply / Note** tabs: internal notes stay in the thread and never reach the patient.
+- **Saved replies**: type `/` in the reply box; `{nama}` becomes the contact's name.
+- **AI suggestion**: a draft reply from the knowledge base that staff edit before sending.
+- **Labels** from the tag icon; **attach files** (photo, PDF, Office, audio, video).
+- Photos shown inline, players for voice notes and video, links for documents.
+- Bot ⇄ Staff switch, assign, resolve/reopen, AI summary for takeover, per-message
+  sources, tokens and cost.
 
-## 4. Safety
+## 4. The bot (Onti Erlina)
 
-- **Keyword rules** (Indonesian + English) for Emergency, Self-harm, Medicine side effects, Stopping/missing treatment. Tolerant of case, accents, punctuation, suffixes (-nya, -ku) and words in between. Always run, even over budget, in staff mode, or for opted-out contacts.
-- **AI classifier** on every message; the final level is whichever is higher. An unreadable classifier answer counts as "low".
-- High/emergency → a **fixed** safety reply written by the foundation (IGD / 119 / staff alerted), never AI-generated, in the user's language; a case is opened; the conversation goes to staff; staff get a live alert and an email (if SMTP is set).
-- All rules and texts are editable in Settings.
+- Answers only from the TB knowledge base (multilingual keyword + semantic search),
+  Indonesian or English, never diagnoses or doses, points to the puskesmas.
+- **Voice notes are transcribed** (Whisper on the server, or Groq) and answered like
+  typed messages; staff see the player and the transcript.
+- Questions the knowledge base doesn't cover are logged for staff (§8).
+- Claude Sonnet 5.5 answers (≈Rp 110 per question with the safety check), Haiku 4.5
+  classifier; Groq or an offline demo mode also work.
 
-## 5. Cases
+## 5. Safety
 
-- Queue sorted by severity (emergency first), with the message that raised it.
-- Claim / unclaim, notes, "Resolve & return to bot" or "Resolve, keep staff mode".
-- Case badge in the sidebar; cases listed in the conversation's contact panel.
+- Keyword rules + AI classifier on every message; the higher level wins.
+- High/emergency: a **fixed** safety reply (IGD / 119), a case, staff take over, live
+  alert and email. Editable rules and texts.
+- **Office hours**: outside them, a contact whose chat is with staff gets one away
+  message per closed period saying when staff are back (the bot still answers 24/7).
 
-## 6. Contacts and consent
+## 6. TB programme
 
-- One contact can have several channel identities; **merge** duplicates (opt-out always wins).
-- Cross-channel timeline of every message with that person; notes.
-- Consent log: privacy notice on first contact, **STOP/BERHENTI** (one confirmation, then silence), **MULAI** to come back, **LANGGANAN** to subscribe to broadcasts, staff-recorded consent.
+- **Patient journey** per contact: presumptive → testing → on treatment → completed /
+  lost to follow-up, treatment start and length ("month 3 of 6"), puskesmas, kader.
+- **Patients board**: drag cards between stages; cards show the treatment month,
+  this week's doses and open tasks.
+- **Medication reminders** (opt-in per patient): "Sudah minum obat hari ini?" with
+  Sudah / Belum buttons at the patient's time. Unanswered → one follow-up; missed N
+  days in a row → an adherence case and a call task for the kader. 14-day dose dots
+  in the contact panel.
+- **TB symptom screening** over chat: "SKRINING" → five Ya / Tidak questions → result.
+  "Should get tested" marks the person presumptive and creates a follow-up task.
+  Questions and rule in `config/screening.yaml`.
+- **Tasks**: calls, home visits, other follow-ups with due dates and an assignee;
+  overdue / today / upcoming; outcome on completion; sidebar badge.
 
-## 7. Broadcasts (WhatsApp)
+## 7. Cases, contacts, consent
 
-- Templates synced from Meta or registered by hand.
-- Composer with variables (`{{name}}` = contact name), **consent-only audience**, cost estimate (per-category rate) and preview.
-- Sending through a queue with a rate limit and automatic retries; consent re-checked at send time.
-- Campaign page: sent / delivered / read / failed per recipient.
+- Case queue by severity, claim, notes, resolve back to bot or keep staff mode.
+- Contacts with several channel identities, merge, cross-channel timeline, notes.
+- Consent log: privacy notice, STOP/BERHENTI, MULAI, LANGGANAN, staff-recorded consent.
 
-## 8. Dashboard
+## 8. Knowledge page
 
-Conversations by channel (today / month), open cases by severity, median first response time (bot vs staff), AI spend against the monthly budget, WhatsApp template messages against the free-tier setting, contacts subscribed / opted out. Table view for the charts.
+- Edit the bot's articles in the browser; hide/show, add, delete.
+- **Publish** rebuilds the search index in the background (a few seconds); the bot
+  uses it straight away.
+- **Unanswered**: questions the bot couldn't answer, with a link to the conversation;
+  mark done once an article covers them.
 
-## 9. Cost controls
+## 9. Broadcasts (WhatsApp)
 
-Monthly AI budget (alert at 80%, at 100% switch to the cheaper model or to a fixed "staff will contact you" reply), per-contact rate limit (20 messages / 10 minutes) and daily cap (30), every AI call logged with tokens and cost.
+Templates (synced or registered), consent-only audience, `{{name}}` variables, cost
+estimate and preview, rate-limited sending with retries, per-recipient status.
 
-## 10. Settings and administration
+## 10. Dashboard and reports
 
-- Editable: persona, models, safety and consent texts, keyword rules, budget and limits, WhatsApp pricing.
-- Channel status: webhook URLs, what's configured, last webhook, live token + Meta health check (shows why sending is blocked).
-- Staff accounts with three roles: **admin** (everything), **agent** (inbox, cases, contacts, simulator), **reviewer** (read-only + audit log).
-- **Audit log** of sign-ins, conversation views, replies, mode changes, case actions, setting changes, merges, broadcasts.
+- Conversations by channel, open cases, first response time (bot vs staff), AI spend
+  vs budget, WhatsApp template use, contacts.
+- **TB programme**: adherence %, screenings and how many should get tested, patients
+  per stage, risk flags per week (8 weeks).
+- **CSV exports** (admin and reviewer, logged): patients, doses, screenings, cases.
 
-## 11. Look and feel
+## 11. Settings and security
 
-Mekari Pixel tokens / Talenta-style layout, Plus Jakarta Sans + DM Mono, light and **dark mode** (follows the system until switched), collapsible sidebar on small screens.
+- Tabs: Bot, safety & costs (one group at a time; Indonesian/English versions of a
+  text in one field), Saved replies, Labels, Channels, Staff.
+- Editable: persona, models, safety/consent texts, keyword rules, budget and limits,
+  office hours, reminders, WhatsApp pricing, voice transcription on/off.
+- Roles: admin, agent, reviewer. **Two-step verification** (authenticator app) and
+  password change under **My account**; admins can reset a lost 2FA.
+- Audit log of sign-ins, views, replies, changes, exports.
 
-## 12. Under the hood
+## 12. Cost controls
 
-FastAPI + PostgreSQL + Redis + background worker, Next.js admin, `docker compose up` for everything, database migrations, optional Cloudflare tunnel for webhooks, demo seed data, 100 backend tests + 3 browser tests, setup/architecture/demo docs.
+Monthly AI budget (alert at 80%, fallback at 100%), per-contact rate limit and daily
+cap, every AI call logged with tokens and cost.
 
-**Not built yet** (all in the roadmap): Bahasa Indonesia staff UI, canned replies, labels, sending images/files, web chat widget, routing rules, SLAs, CSAT, scheduling, a knowledge-base editor in the UI, hosting/backups.
+## 13. Operations
+
+`docker compose up` for everything; migrations on start; **daily backups** of the
+database and media (14 days kept); optional HTTPS with Caddy for a real server
+([HOSTING.md](HOSTING.md)); Cloudflare quick tunnel for testing webhooks; demo seed
+data; 144 backend tests and 4 browser tests.
