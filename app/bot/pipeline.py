@@ -5,7 +5,8 @@ Order matters:
    An opted-out contact gets no replies, but keyword flags still alert staff.
 1. keyword safety flags (always, even over budget or in HUMAN mode)
    + first contact: privacy/consent notice; LANGGANAN -> broadcast opt-in
-2. HUMAN mode -> store + notify only (a high/emergency keyword still opens a case)
+2. HUMAN mode -> store + notify only (a high/emergency keyword still opens a case);
+   outside office hours the contact gets one away message per closed period
    + non-text messages get a polite "text only" reply
 3. keyword high/emergency -> fixed safety reply + case + HUMAN
    then cost controls: per-contact rate limit and daily cap (polite notice once);
@@ -25,7 +26,7 @@ from app.db import SessionLocal
 from app.llm import LLMError
 from app.locks import conversation_lock
 from app.models import Conversation, Message
-from app.services import cases, consent, limits, outbound, settings_service
+from app.services import cases, consent, limits, office_hours, outbound, settings_service
 from app.services.settings_service import Config
 
 log = logging.getLogger("onti.pipeline")
@@ -102,6 +103,7 @@ async def _handle(session, conv: Conversation, msg: Message) -> None:
         if at_least(kw.severity, "high"):
             await cases.open_case(session, conv, msg, kw.severity, kw.category or "OTHER",
                                   kw.reason, to_human=True)  # fmt: skip
+        await office_hours.maybe_send_away(session, conv, cfg, lang)
         await events.publish("conversation.needs_human", conversation_id=conv.id, message_id=msg.id)
         return
 
@@ -159,6 +161,8 @@ async def safety_reply(session, conv, msg, flag: safety.Flag, cfg: Config, lang:
     )  # fmt: skip
     await cases.open_case(session, conv, msg, flag.severity, flag.category or "OTHER",
                           flag.reason, to_human=True)  # fmt: skip
+    # The safety reply promises a staff follow-up; at night, say when that will be.
+    await office_hours.maybe_send_away(session, conv, cfg, lang)
 
 
 async def bot_answer(session, conv, msg, cfg: Config, lang: str, model: str) -> None:

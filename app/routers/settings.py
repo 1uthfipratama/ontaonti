@@ -14,7 +14,15 @@ from app.db import get_session
 from app.deps import admin_only, client_ip
 from app.models import Setting, StaffUser
 from app.services import settings_service
-from app.services.settings_service import BOOL_KEYS, CHOICES, DEFAULTS, GROUPS, NUMBER_KEYS
+from app.services.settings_service import (
+    BOOL_KEYS,
+    CHOICES,
+    DAYS_KEYS,
+    DEFAULTS,
+    GROUPS,
+    NUMBER_KEYS,
+    TIME_KEYS,
+)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -54,6 +62,7 @@ TEXT_LABELS = {
     "budget_fallback_reply": "Fixed reply (budget exhausted or bot error)",
     "daily_cap_reply": "Daily cap reached reply",
     "rate_limit_reply": "Rate limit reply",
+    "away_message": "Out-of-hours message ({jam} / {hours} = the hours)",
 }
 LANG_SUFFIX = {"_id": " · Bahasa Indonesia", "_en": " · English"}
 
@@ -74,6 +83,10 @@ def _field(key: str, value: Any, overridden: bool) -> dict:
         kind = "number"
     elif key in CHOICES:
         kind = "select"
+    elif key in TIME_KEYS:
+        kind = "time"
+    elif key in DAYS_KEYS:
+        kind = "days"
     elif key.endswith(("_id", "_en")) or key == "persona_prompt":
         kind = "textarea"
     else:

@@ -5,6 +5,7 @@ defaults merged with overrides. Texts marked *_id / *_en are picked by the
 user's language (app/bot/language.py).
 """
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -173,6 +174,19 @@ DEFAULTS: dict[str, Any] = {
         "Thank you for your message. Our staff will contact you as soon as possible. In an "
         "emergency, go to the nearest IGD or call 119."
     ),
+    # --- office hours ---------------------------------------------------------
+    "office_hours_enabled": False,
+    "office_days": [1, 2, 3, 4, 5],  # ISO weekdays, Monday = 1
+    "office_open": "08:00",
+    "office_close": "16:00",
+    "away_message_id": (
+        "Terima kasih, pesan Anda sudah kami terima. 🙏 Staf kami bertugas *{jam}* dan akan "
+        "membalas saat jam layanan. Jika darurat, segera ke IGD terdekat atau hubungi 119."
+    ),
+    "away_message_en": (
+        "Thank you, we've received your message. 🙏 Our staff are available *{hours}* and will "
+        "reply during those hours. In an emergency, go to the nearest IGD or call 119."
+    ),
     # --- WhatsApp pricing (estimates for broadcasts / dashboard) ------------
     "wa_rate_marketing_idr": 680,
     "wa_rate_utility_idr": 330,
@@ -184,6 +198,8 @@ NUMBER_KEYS = {
 }
 BOOL_KEYS = {k for k, v in DEFAULTS.items() if isinstance(v, bool)}
 CHOICES = {"budget_fallback_mode": ("classifier_model", "fixed_reply")}
+TIME_KEYS = {"office_open", "office_close"}
+DAYS_KEYS = {"office_days"}
 
 # Settings page layout: (group, [keys]).
 GROUPS: list[tuple[str, list[str]]] = [
@@ -202,6 +218,8 @@ GROUPS: list[tuple[str, list[str]]] = [
                          "daily_message_cap", "daily_cap_reply_id", "daily_cap_reply_en",
                          "rate_limit_count", "rate_limit_window_minutes",
                          "rate_limit_reply_id", "rate_limit_reply_en"]),
+    ("Office hours", ["office_hours_enabled", "office_days", "office_open", "office_close",
+                      "away_message_id", "away_message_en"]),
     ("WhatsApp pricing", ["wa_rate_marketing_idr", "wa_rate_utility_idr", "wa_free_tier_messages"]),
 ]  # fmt: skip
 
@@ -254,6 +272,15 @@ def coerce(key: str, value: Any) -> Any:
         if num < 0:
             raise ValueError(f"{key} must be >= 0")
         return int(num) if isinstance(DEFAULTS[key], int) else num
+    if key in TIME_KEYS:
+        if not isinstance(value, str) or not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", value):
+            raise ValueError(f"{key} must be HH:MM")
+        return value
+    if key in DAYS_KEYS:
+        days = sorted({int(d) for d in value or []})
+        if any(d < 1 or d > 7 for d in days):
+            raise ValueError(f"{key} must be weekdays 1-7")
+        return days
     if key in CHOICES and value not in CHOICES[key]:
         raise ValueError(f"{key} must be one of {CHOICES[key]}")
     if key == "flag_rules":

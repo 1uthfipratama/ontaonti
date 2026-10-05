@@ -97,6 +97,8 @@ class Conversation(Base):
     # Highest flag since the last resolve; drives the inbox flag filter.
     flag_severity: Mapped[str] = mapped_column(String(12), default="none")
     flag_category: Mapped[str | None] = mapped_column(String(30))
+    # Last out-of-hours away message: at most one per closed period.
+    away_sent_at: Mapped[datetime | None] = mapped_column(TS)
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TS, default=utcnow, onupdate=utcnow)
 

@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
 type Field = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "bool" | "select";
-  value: string | number | boolean;
-  default: string | number | boolean;
+  type: "text" | "textarea" | "number" | "bool" | "select" | "time" | "days";
+  value: string | number | boolean | number[];
+  default: string | number | boolean | number[];
   choices: string[];
   overridden: boolean;
 };
@@ -126,6 +126,31 @@ export function SettingsEditor({ only }: { only?: string[] }) {
         );
       case "bool":
         return <Switch id={f.key} checked={Boolean(v)} onCheckedChange={(x) => set(f.key, x)} />;
+      case "time":
+        return (
+          <Input id={f.key} type="time" className="max-w-36" value={String(v)} onChange={(e) => set(f.key, e.target.value)} />
+        );
+      case "days": {
+        const on = new Set((v as number[]) ?? []);
+        return (
+          <div className="flex flex-wrap gap-1.5" id={f.key}>
+            {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+              <button
+                key={d}
+                type="button"
+                aria-pressed={on.has(d)}
+                onClick={() => set(f.key, on.has(d) ? [...on].filter((x) => x !== d) : [...on, d].sort())}
+                className={cn(
+                  "h-8 w-12 rounded-md text-sm font-medium",
+                  on.has(d) ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t(`day.${d}`)}
+              </button>
+            ))}
+          </div>
+        );
+      }
       case "select":
         return (
           <NativeSelect
@@ -199,6 +224,9 @@ export function SettingsEditor({ only }: { only?: string[] }) {
                     )}
                   </div>
                   {input(f, it.base === "persona_prompt")}
+                  {t(`set.${it.base}.hint`) !== `set.${it.base}.hint` && (
+                    <p className="text-xs text-muted-foreground">{t(`set.${it.base}.hint`)}</p>
+                  )}
                 </div>
               );
             })}
