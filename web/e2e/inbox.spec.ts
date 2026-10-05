@@ -11,9 +11,9 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/inbox/);
 }
 
-test("login lands on the inbox with the prototype banner", async ({ page }) => {
+test("login lands on the inbox", async ({ page }) => {
   await login(page);
-  await expect(page.getByTestId("prototype-banner")).toContainText("Prototype — test data only");
+  await expect(page.getByTestId("page-title")).toHaveText("Inbox");
   await expect(page.getByLabel("Channel")).toBeVisible();
 });
 

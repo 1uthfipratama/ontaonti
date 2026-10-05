@@ -26,7 +26,7 @@ export default function AuditPage() {
         />
       </div>
       {error && <p className="text-sm text-destructive">{error.message}</p>}
-      <div className="overflow-hidden rounded-lg bg-white">
+      <div className="overflow-hidden rounded-lg bg-card">
       <Table>
         <TableHeader>
           <TableRow>

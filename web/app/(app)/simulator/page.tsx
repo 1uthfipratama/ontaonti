@@ -67,7 +67,7 @@ export default function SimulatorPage() {
 
   return (
     <div className="grid h-full grid-rows-[minmax(0,1fr)] grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)]">
-      <div className="space-y-6 overflow-y-auto border-r border-border bg-white p-5">
+      <div className="space-y-6 overflow-y-auto border-r border-border bg-card p-5">
         <p className="text-sm text-muted-foreground">
           Chat as a fake user. Messages go through the same safety checks and bot as real channels;
           nothing is sent to Meta.
@@ -120,9 +120,9 @@ export default function SimulatorPage() {
       </div>
 
       <div className="flex min-h-0 flex-col items-center p-6">
-        <div className="flex h-full w-full max-w-md flex-col overflow-hidden rounded-lg bg-white shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
+        <div className="flex h-full w-full max-w-md flex-col overflow-hidden rounded-lg bg-card shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
           <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-            <div className="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">OE</div>
+            <div className="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">OE</div>
             <div className="flex-1 leading-tight">
               <div className="text-sm font-semibold">Onti Erlani</div>
               <div className="text-xs text-muted-foreground">
@@ -136,7 +136,7 @@ export default function SimulatorPage() {
             )}
           </div>
           {conv?.mode === "HUMAN" && (
-            <div className="flex items-center gap-3 border-b border-border bg-[#fff6d6] px-4 py-2 text-xs text-[#a14a0b]">
+            <div className="flex items-center gap-3 border-b border-border bg-warning px-4 py-2 text-xs text-warning-foreground">
               <span className="flex-1">
                 Staff is handling this chat (a risky message or a staff reply), so the bot stays silent.
               </span>
@@ -169,7 +169,7 @@ export default function SimulatorPage() {
                       data-testid={mine ? "sim-user-msg" : `sim-reply-${m.sender_type}`}
                       className={cn(
                         "max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed",
-                        mine ? "bg-primary text-white" : "bg-white text-foreground",
+                        mine ? "bg-primary text-primary-foreground" : "bg-card text-foreground",
                       )}
                     >
                       {!mine && m.sender_type === "agent" && (

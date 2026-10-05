@@ -72,7 +72,7 @@ export function ChannelStatus() {
     ["Instagram", data.instagram],
   ];
   return (
-    <div className="rounded-lg bg-white">
+    <div className="rounded-lg bg-card">
       {rows.map(([name, ch], i) => {
         const st = state(ch);
         const missing = Object.entries(ch.checks).filter(([, v]) => v === "missing").map(([k]) => k);
@@ -81,11 +81,11 @@ export function ChannelStatus() {
           <div
             key={name}
             data-testid={`channel-${name.toLowerCase()}`}
-            className={cn("grid gap-4 px-5 py-4 md:grid-cols-[10rem_1fr_auto]", i > 0 && "border-t border-[#f0f1f3]")}
+            className={cn("grid gap-4 px-5 py-4 md:grid-cols-[10rem_1fr_auto]", i > 0 && "border-t border-divider")}
           >
             <div>
               <div className="text-sm font-semibold">{name}</div>
-              <div className={cn("mt-0.5 text-xs", st.ok ? "text-[#186f4a]" : "text-muted-foreground")}>{st.text}</div>
+              <div className={cn("mt-0.5 text-xs", st.ok ? "text-success-foreground" : "text-muted-foreground")}>{st.text}</div>
             </div>
             <div className="min-w-0 space-y-1 text-xs text-muted-foreground">
               <div>
@@ -110,7 +110,7 @@ export function ChannelStatus() {
           </div>
         );
       })}
-      <div className="grid gap-x-8 gap-y-1 border-t border-[#f0f1f3] px-5 py-4 text-xs text-muted-foreground md:grid-cols-4">
+      <div className="grid gap-x-8 gap-y-1 border-t border-divider px-5 py-4 text-xs text-muted-foreground md:grid-cols-4">
         <span>
           LLM: <span className="text-foreground">{data.llm.provider}</span> (key {data.llm.key})
         </span>

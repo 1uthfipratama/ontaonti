@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,10 +31,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
+    <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
+      <ThemeToggle className="absolute top-4 right-4" />
+      <div className="w-full max-w-sm rounded-lg bg-card p-8 shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
         <div className="mb-6 flex items-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-white">
+          <div className="flex size-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
             OE
           </div>
           <div className="leading-tight">
@@ -70,7 +72,7 @@ export default function LoginPage() {
           </Button>
         </form>
       </div>
-      <p className="mt-4 text-xs text-[#a14a0b]">Prototype — test data only. Not for real patient data.</p>
+      <p className="mt-4 text-xs text-warning-foreground">Prototype — test data only. Not for real patient data.</p>
     </div>
   );
 }

@@ -30,12 +30,12 @@ function Inbox() {
       {selected ? (
         <Thread key={selected} id={selected} />
       ) : (
-        <div className="flex items-center justify-center bg-white text-sm text-muted-foreground">
+        <div className="flex items-center justify-center bg-card text-sm text-muted-foreground">
           Select a conversation
         </div>
       )}
       <div className="hidden min-h-0 xl:block">
-        {selected ? <ContactPanel id={selected} /> : <div className="h-full border-l border-border bg-white" />}
+        {selected ? <ContactPanel id={selected} /> : <div className="h-full border-l border-border bg-card" />}
       </div>
     </div>
   );

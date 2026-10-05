@@ -30,6 +30,8 @@ docker compose up --build     # http://localhost:3000
   cloudflared, long-lived token
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): diagram, pipeline, data model
 - [docs/DEMO.md](docs/DEMO.md): step-by-step demo script
+- [docs/FEATURES.md](docs/FEATURES.md): everything the app does today
+- [docs/ROADMAP.md](docs/ROADMAP.md): Mekari Qontak parity plan, and where we go further
 - [kb/README.md](kb/README.md): the knowledge base (**draft, needs medical review**)
 - [rag/VENDORED.md](rag/VENDORED.md): what was reused from thesis-rag
 

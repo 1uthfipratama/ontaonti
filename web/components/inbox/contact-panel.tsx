@@ -29,9 +29,9 @@ export function ContactPanel({ id }: { id: number }) {
   const { data: conv } = useSWR<Conversation>(`/conversations/${id}`);
   const { data: cases } = useSWR<Case[]>(`/cases?status=all&conversation_id=${id}`);
   const c = conv?.contact;
-  if (!c) return <div className="border-l border-border bg-white" />;
+  if (!c) return <div className="border-l border-border bg-card" />;
   return (
-    <div className="h-full space-y-6 overflow-y-auto border-l border-border bg-white p-5">
+    <div className="h-full space-y-6 overflow-y-auto border-l border-border bg-card p-5">
       <div>
         <Link href={`/contacts?id=${c.id}`} className="text-[15px] font-semibold hover:text-primary">
           {c.display_name}

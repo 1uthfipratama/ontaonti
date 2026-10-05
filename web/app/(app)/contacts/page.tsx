@@ -54,12 +54,12 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
     }
   }
 
-  if (!c) return <div className="bg-white p-6 text-sm text-muted-foreground">Loading…</div>;
+  if (!c) return <div className="bg-card p-6 text-sm text-muted-foreground">Loading…</div>;
   const others = all.filter((o) => o.id !== id);
   let lastChannel = "";
   return (
     <div className="grid h-full grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1fr)] overflow-hidden xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="flex min-h-0 flex-col bg-white">
+      <div className="flex min-h-0 flex-col bg-card">
         <div className="border-b border-border px-6 py-3">
           <h2 className="text-[15px] font-semibold">{c.display_name}</h2>
           <p className="text-xs text-muted-foreground">All messages across channels, oldest first</p>
@@ -84,7 +84,7 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
         </div>
       </div>
 
-      <div className="hidden space-y-6 overflow-y-auto border-l border-border bg-white p-5 text-sm xl:block">
+      <div className="hidden space-y-6 overflow-y-auto border-l border-border bg-card p-5 text-sm xl:block">
         <Section title="Channels">
           {c.identities.map((i) => (
             <div key={i.id} className="flex justify-between gap-2">
@@ -199,7 +199,7 @@ function Contacts() {
   const { data } = useSWR<ContactRow[]>(`/contacts${q ? `?q=${encodeURIComponent(q)}` : ""}`);
   return (
     <div className="grid h-full grid-rows-[minmax(0,1fr)] grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[21rem_minmax(0,1fr)]">
-      <div className="flex flex-col border-r border-border bg-white">
+      <div className="flex flex-col border-r border-border bg-card">
         <div className="relative p-3">
           <Search className="pointer-events-none absolute top-5.5 left-6 size-4 text-muted-foreground" />
           <Input placeholder="Search name, phone or id" value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
@@ -234,7 +234,7 @@ function Contacts() {
       {selected ? (
         <Detail key={selected} id={selected} all={data ?? []} />
       ) : (
-        <div className="flex items-center justify-center bg-white text-sm text-muted-foreground">Select a contact</div>
+        <div className="flex items-center justify-center bg-card text-sm text-muted-foreground">Select a contact</div>
       )}
     </div>
   );

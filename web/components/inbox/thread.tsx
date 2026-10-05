@@ -64,7 +64,7 @@ export function Thread({ id }: { id: number }) {
     }
   }
 
-  if (!conv) return <div className="bg-white p-6 text-sm text-muted-foreground">Loading…</div>;
+  if (!conv) return <div className="bg-card p-6 text-sm text-muted-foreground">Loading…</div>;
   const staffName = (sid: number | null) => {
     const s = staff?.find((x) => x.id === sid);
     return s?.name || s?.email;
@@ -76,7 +76,7 @@ export function Thread({ id }: { id: number }) {
   ].filter(Boolean);
 
   return (
-    <div className="flex h-full min-w-0 flex-col bg-white">
+    <div className="flex h-full min-w-0 flex-col bg-card">
       <div className="flex items-center gap-4 border-b border-border px-5 py-3">
         <div className="min-w-[9rem] flex-1">
           <div className="truncate text-[15px] font-semibold" data-testid="thread-title">

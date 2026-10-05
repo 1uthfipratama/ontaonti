@@ -30,9 +30,9 @@ export function SummaryButton({ conversationId }: { conversationId: number }) {
         <Sparkles /> {busy ? "Summarising…" : "AI summary"}
       </Button>
       {summary && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[#272b32]/30 p-16" onClick={() => setSummary(null)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-16" onClick={() => setSummary(null)}>
           <div
-            className="w-full max-w-lg rounded-lg bg-white p-6 shadow-[0_20px_25px_-5px_rgba(39,43,50,0.15)]"
+            className="w-full max-w-lg rounded-lg bg-card p-6 shadow-[0_20px_25px_-5px_rgba(39,43,50,0.15)]"
             onClick={(e) => e.stopPropagation()}
             data-testid="summary-dialog"
           >

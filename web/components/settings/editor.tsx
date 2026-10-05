@@ -80,7 +80,7 @@ export function SettingsEditor() {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-lg bg-white px-5 py-3 shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
+      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-lg bg-card px-5 py-3 shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
         <span className="flex-1 text-sm text-muted-foreground">{dirty ? "You have unsaved changes" : "All changes saved"}</span>
         <Button size="sm" onClick={save} disabled={!dirty || busy} data-testid="settings-save">
           Save

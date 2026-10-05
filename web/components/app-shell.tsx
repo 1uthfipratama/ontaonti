@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { api, fetcher } from "@/lib/api";
 import { useStaff } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -90,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen">
       <aside className="flex w-16 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:w-60">
         <div className="flex h-14 items-center justify-center gap-2.5 lg:justify-start lg:px-5">
-          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-white">
+          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
             OE
           </div>
           <div className="hidden leading-tight lg:block">
@@ -101,7 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-3 lg:px-3">
           {groups.map((g) => (
             <div key={g.group}>
-              <div className="hidden px-2 pb-1.5 text-[11px] font-semibold text-[#758195] lg:block">{g.group}</div>
+              <div className="hidden px-2 pb-1.5 text-[11px] font-semibold text-subtle-foreground lg:block">{g.group}</div>
               <div className="space-y-0.5">
                 {g.items.map((n) => {
                   const active = path.startsWith(n.href);
@@ -156,16 +157,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-white px-6">
-          <h1 className="text-base font-semibold">{current?.label ?? ""}</h1>
-          <span
-            role="status"
-            data-testid="prototype-banner"
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#fff6d6] px-3 py-1 text-xs font-medium text-[#a14a0b]"
-          >
-            <span className="size-1.5 rounded-full bg-[#d4a514]" aria-hidden />
-            Prototype — test data only
-          </span>
+        <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-card px-6">
+          <h1 className="text-base font-semibold" data-testid="page-title">
+            {current?.label ?? ""}
+          </h1>
+          <ThemeToggle className="ml-auto" />
         </header>
         <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
       </div>

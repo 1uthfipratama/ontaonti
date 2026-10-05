@@ -31,7 +31,7 @@ export function ConversationList({
     setFilters({ ...filters, [k]: e.target.value });
 
   return (
-    <div className="flex h-full flex-col border-r border-border bg-white">
+    <div className="flex h-full flex-col border-r border-border bg-card">
       <div className="space-y-2 p-3">
         <div className="relative">
           <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />

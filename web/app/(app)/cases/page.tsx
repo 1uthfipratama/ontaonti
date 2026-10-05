@@ -44,9 +44,9 @@ function CaseDetail({ id }: { id: number }) {
     }
   }
 
-  if (!c) return <div className="bg-white p-6 text-sm text-muted-foreground">Loading…</div>;
+  if (!c) return <div className="bg-card p-6 text-sm text-muted-foreground">Loading…</div>;
   return (
-    <div className="h-full overflow-y-auto bg-white">
+    <div className="h-full overflow-y-auto bg-card">
       <div className="flex items-start gap-4 border-b border-border px-6 py-4">
         <div className="flex-1">
           <div className="flex items-center gap-3">
@@ -142,7 +142,7 @@ function Cases() {
   const { data } = useSWR<Case[]>(`/cases?status=${status}`);
   return (
     <div className="grid h-full grid-rows-[minmax(0,1fr)] grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
-      <div className="flex flex-col border-r border-border bg-white">
+      <div className="flex flex-col border-r border-border bg-card">
         <div className="p-3">
           <NativeSelect
             aria-label="Status"
@@ -188,7 +188,7 @@ function Cases() {
       {selected ? (
         <CaseDetail key={selected} id={selected} />
       ) : (
-        <div className="flex items-center justify-center bg-white text-sm text-muted-foreground">Select a case</div>
+        <div className="flex items-center justify-center bg-card text-sm text-muted-foreground">Select a case</div>
       )}
     </div>
   );
