@@ -102,6 +102,9 @@ class Conversation(Base):
 
     identity: Mapped[ContactIdentity] = relationship(lazy="joined")
     contact: Mapped[Contact] = relationship(lazy="joined")
+    labels: Mapped[list["Label"]] = relationship(
+        secondary="conversation_labels", lazy="selectin", order_by="Label.name"
+    )
 
 
 class Message(Base):
@@ -288,3 +291,38 @@ class BroadcastRecipient(Base):
     sent_at: Mapped[datetime | None] = mapped_column(TS)
     delivered_at: Mapped[datetime | None] = mapped_column(TS)
     read_at: Mapped[datetime | None] = mapped_column(TS)
+
+
+class SavedReply(Base):
+    """Canned reply staff insert with "/" in the reply box."""
+
+    __tablename__ = "saved_replies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shortcut: Mapped[str] = mapped_column(String(40), unique=True)  # e.g. "jadwal"
+    title: Mapped[str] = mapped_column(String(120))
+    body: Mapped[str] = mapped_column(Text)
+    created_by: Mapped[int | None] = mapped_column(
+        ForeignKey("staff_users.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(TS, default=utcnow, onupdate=utcnow)
+
+
+class Label(Base):
+    __tablename__ = "labels"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(60), unique=True)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+
+
+class ConversationLabel(Base):
+    __tablename__ = "conversation_labels"
+
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE"), primary_key=True
+    )
+    label_id: Mapped[int] = mapped_column(
+        ForeignKey("labels.id", ondelete="CASCADE"), primary_key=True
+    )

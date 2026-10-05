@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api";
 import { clock } from "@/lib/format";
+import { useT, type T } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type ChannelInfo = {
@@ -24,17 +25,18 @@ type Channels = {
   email_alerts: boolean;
 };
 
-function state(ch: ChannelInfo): { text: string; ok: boolean } {
-  if (!ch.enabled) return { text: "Off", ok: false };
-  return ch.configured ? { text: "Connected", ok: true } : { text: "Not configured", ok: false };
+function state(ch: ChannelInfo, t: T): { text: string; ok: boolean } {
+  if (!ch.enabled) return { text: t("ch.off"), ok: false };
+  return ch.configured ? { text: t("ch.connected"), ok: true } : { text: t("ch.notConfigured"), ok: false };
 }
 
 export function ChannelStatus() {
+  const t = useT();
   const { data } = useSWR<Channels>("/settings/channels");
   const [check, setCheck] = useState("");
 
   async function runCheck() {
-    setCheck("Checking…");
+    setCheck(t("ch.checking"));
     try {
       type Health = {
         can_send_message?: string;
@@ -46,21 +48,19 @@ export function ChannelStatus() {
         phone?: { display_phone_number?: string; verified_name?: string; health_status?: Health };
       }>("/settings/channels/whatsapp/check", { method: "POST" });
       if (!r.ok) {
-        setCheck(`Failed: ${r.error}`);
+        setCheck(t("ch.failed", { error: r.error ?? "" }));
         return;
       }
       const health = r.phone?.health_status;
       // Meta's own diagnosis of why messages can't be delivered (SIP/calling errors aren't relevant).
       const reasons = (health?.entities ?? [])
         .flatMap((e) => (e.errors ?? []).map((x) => `${x.error_description} (${x.error_code})`))
-        .filter((t) => !/SIP/i.test(t));
-      const sending = health?.can_send_message ?? "unknown";
-      setCheck(
-        `Token works: ${r.phone?.display_phone_number ?? ""} ${r.phone?.verified_name ?? ""}. ` +
-          `Sending: ${sending}${reasons.length ? ` — ${reasons.join(" · ")}` : ""}`,
-      );
+        .filter((x) => !/SIP/i.test(x));
+      const phone = `${r.phone?.display_phone_number ?? ""} ${r.phone?.verified_name ?? ""}`.trim();
+      const sending = (health?.can_send_message ?? "?") + (reasons.length ? ` — ${reasons.join(" · ")}` : "");
+      setCheck(t("ch.tokenOk", { phone, sending }));
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e, t));
       setCheck("");
     }
   }
@@ -74,7 +74,7 @@ export function ChannelStatus() {
   return (
     <div className="rounded-lg bg-card">
       {rows.map(([name, ch], i) => {
-        const st = state(ch);
+        const st = state(ch, t);
         const missing = Object.entries(ch.checks).filter(([, v]) => v === "missing").map(([k]) => k);
         const detected = Object.entries(ch.checks).filter(([, v]) => v.startsWith("detected"));
         return (
@@ -89,21 +89,19 @@ export function ChannelStatus() {
             </div>
             <div className="min-w-0 space-y-1 text-xs text-muted-foreground">
               <div>
-                Webhook <code className="break-all text-foreground">{ch.webhook_url}</code>
+                {t("ch.webhook")} <code className="break-all text-foreground">{ch.webhook_url}</code>
               </div>
-              {missing.length > 0 && <div>Missing: {missing.join(", ")}</div>}
+              {missing.length > 0 && <div>{t("ch.missing", { list: missing.join(", ") })}</div>}
               {detected.map(([k, v]) => (
-                <div key={k}>
-                  {k} {v.replace("detected", "learned from webhook:")}
-                </div>
+                <div key={k}>{t("ch.learned", { key: k, value: v.replace(/^detected:?\s*/, "") })}</div>
               ))}
-              <div>Last webhook: {ch.last_webhook_at ? clock(ch.last_webhook_at) : "never"}</div>
+              <div>{t("ch.lastWebhook", { when: ch.last_webhook_at ? clock(ch.last_webhook_at) : t("common.never") })}</div>
               {name === "WhatsApp" && check && <div className="text-foreground">{check}</div>}
             </div>
             <div>
               {name === "WhatsApp" && (
                 <Button size="sm" variant="outline" onClick={runCheck}>
-                  Test token
+                  {t("ch.test")}
                 </Button>
               )}
             </div>
@@ -112,16 +110,16 @@ export function ChannelStatus() {
       })}
       <div className="grid gap-x-8 gap-y-1 border-t border-divider px-5 py-4 text-xs text-muted-foreground md:grid-cols-4">
         <span>
-          LLM: <span className="text-foreground">{data.llm.provider}</span> (key {data.llm.key})
+          {t("ch.llm")}: <span className="text-foreground">{data.llm.provider}</span> ({data.llm.key})
         </span>
         <span>
-          Answers: <span className="text-foreground">{data.llm.answer_model}</span>
+          {t("ch.answers")}: <span className="text-foreground">{data.llm.answer_model}</span>
         </span>
         <span>
-          Classifier: <span className="text-foreground">{data.llm.classifier_model}</span>
+          {t("ch.classifier")}: <span className="text-foreground">{data.llm.classifier_model}</span>
         </span>
         <span>
-          Email alerts: <span className="text-foreground">{data.email_alerts ? "on" : "off"}</span>
+          {t("ch.email")}: <span className="text-foreground">{data.email_alerts ? t("common.on") : t("common.off")}</span>
         </span>
       </div>
     </div>

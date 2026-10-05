@@ -22,6 +22,16 @@ from app.services import outbound
 
 log = logging.getLogger("onti.cases")
 
+# Short Indonesian names for staff-facing system notes.
+CATEGORY_ID = {
+    "EMERGENCY": "darurat",
+    "SELF_HARM": "menyakiti diri",
+    "ADVERSE_DRUG": "efek samping obat",
+    "ADHERENCE": "pengobatan terhenti",
+    "BUDGET": "anggaran AI habis",
+    "BOT_ERROR": "bot gagal menjawab",
+}
+
 
 def flag_message(conv: Conversation, msg: Message, flag: Flag) -> None:
     """Record a flag on the message and raise the conversation's flag level."""
@@ -78,7 +88,8 @@ async def open_case(
         case.reason = (case.reason + f"\n{reason}").strip()[-2000:]
     if to_human and conv.mode != MODE_HUMAN:
         conv.mode = MODE_HUMAN
-        await outbound.add_note(session, conv, f"Mode → HUMAN (otomatis: {category} {severity})")
+        label = CATEGORY_ID.get(category, category.lower())
+        await outbound.add_note(session, conv, f"Bot berhenti otomatis: {label}. Staf menangani.")
     conv.flag_severity = max_severity(conv.flag_severity, severity)
     await session.commit()
     await events.publish(

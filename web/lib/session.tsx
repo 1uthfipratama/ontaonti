@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { API_URL, fetcher } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 import type { Staff } from "@/lib/types";
 
 const SessionContext = createContext<Staff | null>(null);
@@ -32,7 +33,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (error) router.replace("/login");
   }, [error, router]);
   if (isLoading || !data) {
-    return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
+    return <Loading />;
   }
   return (
     <SessionContext.Provider value={data}>
@@ -55,7 +56,13 @@ const REFRESH: Record<string, string[]> = {
   "budget.alert": ["/dashboard", "/notifications"],
 };
 
+function Loading() {
+  const t = useT();
+  return <div className="p-8 text-sm text-muted-foreground">{t("common.loading")}</div>;
+}
+
 function LiveEvents() {
+  const t = useT();
   const { mutate } = useSWRConfig();
   const seen = useRef(false);
   useEffect(() => {
@@ -66,8 +73,7 @@ function LiveEvents() {
       if (ev.type === "case.created") {
         try {
           const data = JSON.parse(ev.data);
-          const sev = String(data.severity ?? "").toUpperCase();
-          toast.error(`New ${sev} case: ${data.category ?? ""}`, {
+          toast.error(`${t("nav.cases")}: ${t(`sev.${data.severity}`)}`, {
             description: data.contact_name ?? "",
             duration: 10000,
           });
@@ -76,15 +82,15 @@ function LiveEvents() {
         }
       }
       if (ev.type === "budget.alert") {
-        toast.warning("AI budget alert", { description: "See the dashboard." });
+        toast.warning(`${t("dash.aiSpend")}: ${t("dash.warn")}`);
       }
     };
-    for (const t of Object.keys(REFRESH)) es.addEventListener(t, handler as EventListener);
+    for (const type of Object.keys(REFRESH)) es.addEventListener(type, handler as EventListener);
     es.addEventListener("hello", () => {
       if (seen.current) mutate(() => true); // reconnected: refresh everything
       seen.current = true;
     });
     return () => es.close();
-  }, [mutate]);
+  }, [mutate, t]);
   return null;
 }

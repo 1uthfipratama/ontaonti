@@ -6,23 +6,25 @@ import useSWR from "swr";
 import { NativeSelect } from "@/components/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { clock } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import type { AuditRow } from "@/lib/types";
 
 const ACTIONS = ["", "auth", "conversation", "case", "contact", "settings", "broadcast", "staff", "simulator"];
 
 export default function AuditPage() {
+  const t = useT();
   const [action, setAction] = useState("");
   const { data, error } = useSWR<AuditRow[]>(`/audit?limit=300${action ? `&action=${action}` : ""}`);
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="mb-4 flex items-center gap-3">
-        <span className="text-sm text-muted-foreground">Who viewed, replied, changed or sent what.</span>
+        <span className="text-sm text-muted-foreground">{t("audit.intro")}</span>
         <NativeSelect
-          aria-label="Action"
+          aria-label={t("audit.action")}
           className="ml-auto"
           value={action}
           onChange={(e) => setAction(e.target.value)}
-          options={ACTIONS.map((a) => ({ value: a, label: a || "All actions" }))}
+          options={ACTIONS.map((a) => ({ value: a, label: a || t("audit.all") }))}
         />
       </div>
       {error && <p className="text-sm text-destructive">{error.message}</p>}
@@ -30,11 +32,11 @@ export default function AuditPage() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>When</TableHead>
-            <TableHead>Who</TableHead>
-            <TableHead>Action</TableHead>
-            <TableHead>Target</TableHead>
-            <TableHead>Details</TableHead>
+            <TableHead>{t("audit.when")}</TableHead>
+            <TableHead>{t("audit.who")}</TableHead>
+            <TableHead>{t("audit.action")}</TableHead>
+            <TableHead>{t("audit.target")}</TableHead>
+            <TableHead>{t("audit.details")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

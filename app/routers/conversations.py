@@ -22,7 +22,7 @@ from app.constants import (
 )
 from app.db import as_utc, get_session, utcnow
 from app.deps import any_staff, can_act, client_ip
-from app.models import AuditLog, Contact, Conversation, Message, StaffUser
+from app.models import AuditLog, Contact, Conversation, ConversationLabel, Message, StaffUser
 from app.services import outbound
 
 router = APIRouter(prefix="/conversations", tags=["inbox"])
@@ -43,6 +43,7 @@ async def list_conversations(
     flag: str | None = None,  # flagged | high | emergency
     q: str | None = None,
     assigned: str | None = None,  # me | none
+    label: int | None = None,
     limit: int = 100,
     user: StaffUser = Depends(any_staff),
     session: AsyncSession = Depends(get_session),
@@ -63,6 +64,12 @@ async def list_conversations(
         like = f"%{q.strip()}%"
         stmt = stmt.where(
             or_(Contact.display_name.ilike(like), Conversation.last_preview.ilike(like))
+        )
+    if label:
+        stmt = stmt.where(
+            Conversation.id.in_(
+                select(ConversationLabel.conversation_id).where(ConversationLabel.label_id == label)
+            )
         )
     if assigned == "me":
         stmt = stmt.where(Conversation.assigned_to == user.id)
@@ -177,7 +184,7 @@ async def reply(
         raise HTTPException(409, reason)
     if body.take_over and conv.mode != MODE_HUMAN:
         conv.mode = MODE_HUMAN
-        await outbound.add_note(session, conv, f"Mode → HUMAN ({user.name or user.email} membalas)")
+        await outbound.add_note(session, conv, f"{user.name or user.email} membalas. Bot berhenti.")
     if conv.assigned_to is None:
         conv.assigned_to = user.id
     audit(session, user, "conversation.reply", "conversation", conv_id,
@@ -211,7 +218,13 @@ async def set_mode(
     conv = await get_conv(session, conv_id)
     if conv.mode != body.mode:
         old, conv.mode = conv.mode, body.mode
-        await outbound.add_note(session, conv, f"Mode → {body.mode} ({user.name or user.email})")
+        who = user.name or user.email
+        note = (
+            f"{who} mengembalikan ke bot."
+            if body.mode == MODE_BOT
+            else f"{who} mengambil alih. Bot berhenti."
+        )
+        await outbound.add_note(session, conv, note)
         audit(session, user, "conversation.mode", "conversation", conv_id,
               {"from": old, "to": body.mode}, client_ip(request))  # fmt: skip
         await session.commit()

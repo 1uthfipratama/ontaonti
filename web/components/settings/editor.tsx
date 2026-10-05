@@ -6,10 +6,12 @@ import { toast } from "sonner";
 
 import { NativeSelect } from "@/components/native-select";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api, errorMessage } from "@/lib/api";
+import { useT } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 type Field = {
   key: string;
@@ -23,18 +25,45 @@ type Field = {
 type Rules = { categories: Record<string, { severity: string; keywords: string[] }> };
 type SettingsData = { groups: { name: string; fields: Field[] }[]; flag_rules: Rules; flag_rules_overridden: boolean };
 
-export function SettingsEditor() {
+/** A field, or an Indonesian/English pair of the same text shown as one field. */
+type Item = { base: string; id: Field; en?: Field };
+
+function pair(fields: Field[]): Item[] {
+  const out: Item[] = [];
+  for (const f of fields) {
+    if (f.key.endsWith("_en")) continue;
+    const base = f.key.endsWith("_id") ? f.key.slice(0, -3) : f.key;
+    const en = f.key.endsWith("_id") ? fields.find((x) => x.key === `${base}_en`) : undefined;
+    out.push({ base, id: f, en });
+  }
+  return out;
+}
+
+const RULES = "__rules";
+
+export function SettingsEditor({ only }: { only?: string[] }) {
+  const t = useT();
   const { mutate } = useSWRConfig();
   const { data } = useSWR<SettingsData>("/settings");
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [rulesDraft, setRulesDraft] = useState<Rules | null>(null);
   const [busy, setBusy] = useState(false);
+  const [group, setGroup] = useState<string | null>(null);
+  const [en, setEn] = useState<Record<string, boolean>>({});
   if (!data) return null;
 
+  const groups = data.groups.filter((g) => (only ? only.includes(g.name) : true));
+  const showRules = !only;
+  const active = group ?? groups[0]?.name;
   const dirty = Object.keys(draft).length > 0 || rulesDraft !== null;
   const val = (f: Field) => (f.key in draft ? draft[f.key] : f.value);
   const set = (key: string, v: unknown) => setDraft({ ...draft, [key]: v });
   const rules = rulesDraft ?? data.flag_rules;
+  const label = (base: string, f: Field) => {
+    const k = `set.${base}`;
+    const s = t(k);
+    return s === k ? f.label : s;
+  };
 
   async function save() {
     setBusy(true);
@@ -45,9 +74,9 @@ export function SettingsEditor() {
       mutate("/settings", next, { revalidate: false });
       setDraft({});
       setRulesDraft(null);
-      toast.success("Settings saved");
+      toast.success(t("common.saved"));
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e, t));
     } finally {
       setBusy(false);
     }
@@ -61,126 +90,176 @@ export function SettingsEditor() {
       keys.forEach((k) => delete d[k]);
       setDraft(d);
       if (keys.includes("flag_rules")) setRulesDraft(null);
-      toast.success("Reset to default");
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e, t));
     }
   }
 
-  function editKeywords(cat: string, text: string) {
+  function editRules(cat: string, patch: Partial<{ severity: string; keywords: string[] }>) {
     const next: Rules = JSON.parse(JSON.stringify(rules));
-    next.categories[cat].keywords = text.split("\n").map((s) => s.trim()).filter(Boolean);
-    setRulesDraft(next);
-  }
-  function editSeverity(cat: string, sev: string) {
-    const next: Rules = JSON.parse(JSON.stringify(rules));
-    next.categories[cat].severity = sev;
+    Object.assign(next.categories[cat], patch);
     setRulesDraft(next);
   }
 
+  function input(f: Field, big: boolean) {
+    const v = val(f);
+    switch (f.type) {
+      case "textarea":
+        return (
+          <Textarea
+            id={f.key}
+            value={String(v)}
+            onChange={(e) => set(f.key, e.target.value)}
+            className={big ? "min-h-72 font-mono text-xs" : "min-h-24"}
+          />
+        );
+      case "number":
+        return (
+          <Input
+            id={f.key}
+            type="number"
+            step="any"
+            className="max-w-48"
+            value={String(v)}
+            onChange={(e) => set(f.key, e.target.value === "" ? "" : Number(e.target.value))}
+          />
+        );
+      case "bool":
+        return <Switch id={f.key} checked={Boolean(v)} onCheckedChange={(x) => set(f.key, x)} />;
+      case "select":
+        return (
+          <NativeSelect
+            id={f.key}
+            value={String(v)}
+            onChange={(e) => set(f.key, e.target.value)}
+            options={f.choices.map((c) => ({ value: c, label: t(`choice.${c}`) === `choice.${c}` ? c : t(`choice.${c}`) }))}
+          />
+        );
+      default:
+        return <Input id={f.key} className="max-w-md" value={String(v)} onChange={(e) => set(f.key, e.target.value)} />;
+    }
+  }
+
+  const current = groups.find((g) => g.name === active);
   return (
-    <div className="space-y-4">
-      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-lg bg-card px-5 py-3 shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
-        <span className="flex-1 text-sm text-muted-foreground">{dirty ? "You have unsaved changes" : "All changes saved"}</span>
-        <Button size="sm" onClick={save} disabled={!dirty || busy} data-testid="settings-save">
-          Save
-        </Button>
+    <div className="grid gap-4 md:grid-cols-[13rem_1fr]">
+      <nav className="space-y-0.5">
+        {[...groups.map((g) => g.name), ...(showRules ? [RULES] : [])].map((name) => (
+          <button
+            key={name}
+            onClick={() => setGroup(name)}
+            className={cn(
+              "block w-full rounded-md px-3 py-2 text-left text-sm",
+              active === name ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            {name === RULES ? t("ed.rules") : t(`ed.group.${name}`)}
+          </button>
+        ))}
+      </nav>
+
+      <div className="min-w-0 space-y-4">
+        <div className="space-y-6 rounded-lg bg-card p-5">
+          {active !== RULES &&
+            current &&
+            pair(current.fields).map((it) => {
+              const showEn = it.en && en[it.base];
+              const f = showEn ? it.en! : it.id;
+              const overridden = it.id.overridden || it.en?.overridden;
+              return (
+                <div key={it.base} className="space-y-1.5">
+                  <div className="flex items-center gap-3">
+                    <label htmlFor={f.key} className="text-sm font-medium">
+                      {label(it.base, f)}
+                    </label>
+                    {it.en && (
+                      <span className="flex text-[11px] font-semibold" aria-label={t("ed.language")}>
+                        {(["id", "en"] as const).map((l) => (
+                          <button
+                            key={l}
+                            onClick={() => setEn({ ...en, [it.base]: l === "en" })}
+                            className={cn(
+                              "px-1.5 uppercase",
+                              (l === "en") === Boolean(showEn) ? "text-foreground" : "text-subtle-foreground hover:text-foreground",
+                            )}
+                          >
+                            {l}
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                    <span className="flex-1" />
+                    {overridden && (
+                      <button
+                        className="text-[11px] font-medium text-primary hover:underline"
+                        onClick={() => reset([it.id.key, ...(it.en ? [it.en.key] : [])])}
+                      >
+                        {t("ed.reset")}
+                      </button>
+                    )}
+                  </div>
+                  {input(f, it.base === "persona_prompt")}
+                </div>
+              );
+            })}
+
+          {active === RULES && (
+            <>
+              <div className="flex items-center gap-3">
+                <p className="flex-1 text-xs text-muted-foreground">{t("ed.rulesHint")}</p>
+                {data.flag_rules_overridden && (
+                  <button className="text-[11px] font-medium text-primary hover:underline" onClick={() => reset(["flag_rules"])}>
+                    {t("ed.reset")}
+                  </button>
+                )}
+              </div>
+              <div className="grid gap-5 lg:grid-cols-2">
+                {Object.entries(rules.categories).map(([cat, spec]) => (
+                  <div key={cat} className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="flex-1 text-sm font-medium first-letter:uppercase">
+                        {t(`cat.${cat.toLowerCase()}`) === `cat.${cat.toLowerCase()}` ? cat.toLowerCase() : t(`cat.${cat.toLowerCase()}`)}
+                      </span>
+                      <NativeSelect
+                        value={spec.severity}
+                        onChange={(e) => editRules(cat, { severity: e.target.value })}
+                        options={["low", "high", "emergency"].map((s) => ({ value: s, label: t(`sev.${s}`) }))}
+                      />
+                    </div>
+                    <Textarea
+                      data-testid={`rules-${cat}`}
+                      className="min-h-40 font-mono text-xs"
+                      value={spec.keywords.join("\n")}
+                      onChange={(e) =>
+                        editRules(cat, { keywords: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
         {dirty && (
-          <Button size="sm" variant="ghost" onClick={() => { setDraft({}); setRulesDraft(null); }}>
-            Discard
-          </Button>
+          <div className="sticky bottom-4 flex items-center gap-3 rounded-lg bg-card px-5 py-3 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.12)] ring-1 ring-border">
+            <span className="flex-1 text-sm text-muted-foreground">{t("ed.unsaved")}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setDraft({});
+                setRulesDraft(null);
+              }}
+            >
+              {t("ed.discard")}
+            </Button>
+            <Button size="sm" onClick={save} disabled={busy} data-testid="settings-save">
+              {t("common.save")}
+            </Button>
+          </div>
         )}
       </div>
-
-      {data.groups.map((g) => (
-        <Card key={g.name}>
-          <CardHeader>
-            <CardTitle className="text-sm">{g.name}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {g.fields.map((f) => (
-              <div key={f.key} className={f.type === "textarea" ? "space-y-1 md:col-span-2" : "space-y-1"}>
-                <div className="flex items-center gap-2">
-                  <label htmlFor={f.key} className="text-xs font-medium text-muted-foreground">
-                    {f.label}
-                  </label>
-                  {f.overridden && (
-                    <button className="text-[11px] font-medium text-primary hover:underline" onClick={() => reset([f.key])}>
-                      Reset to default
-                    </button>
-                  )}
-                </div>
-                {f.type === "textarea" && (
-                  <Textarea
-                    id={f.key}
-                    value={String(val(f))}
-                    onChange={(e) => set(f.key, e.target.value)}
-                    className={f.key === "persona_prompt" ? "min-h-64 font-mono text-xs" : "min-h-20 text-xs"}
-                  />
-                )}
-                {f.type === "text" && <Input id={f.key} value={String(val(f))} onChange={(e) => set(f.key, e.target.value)} />}
-                {f.type === "number" && (
-                  <Input
-                    id={f.key}
-                    type="number"
-                    step="any"
-                    value={String(val(f))}
-                    onChange={(e) => set(f.key, e.target.value === "" ? "" : Number(e.target.value))}
-                  />
-                )}
-                {f.type === "bool" && (
-                  <input id={f.key} type="checkbox" checked={Boolean(val(f))} onChange={(e) => set(f.key, e.target.checked)} />
-                )}
-                {f.type === "select" && (
-                  <NativeSelect
-                    id={f.key}
-                    value={String(val(f))}
-                    onChange={(e) => set(f.key, e.target.value)}
-                    options={f.choices.map((c) => ({ value: c, label: c }))}
-                  />
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
-
-      <Card>
-        <CardHeader className="flex flex-row items-center">
-          <CardTitle className="flex-1 text-sm">Safety keyword rules</CardTitle>
-          {data.flag_rules_overridden && (
-            <button className="text-xs font-medium text-primary hover:underline" onClick={() => reset(["flag_rules"])}>
-              Reset to config/flags.yaml
-            </button>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            One keyword or phrase per line. Matching ignores case, accents and punctuation, tolerates suffixes
-            (-nya, -ku) and up to 2 words in between. These rules always run, even over budget.
-          </p>
-          <div className="grid gap-4 md:grid-cols-2">
-            {Object.entries(rules.categories).map(([cat, spec]) => (
-              <div key={cat} className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="flex-1 text-xs font-semibold">{cat.charAt(0) + cat.slice(1).toLowerCase().replace("_", " ")}</span>
-                  <NativeSelect
-                    value={spec.severity}
-                    onChange={(e) => editSeverity(cat, e.target.value)}
-                    options={["low", "high", "emergency"].map((s) => ({ value: s, label: s }))}
-                  />
-                </div>
-                <Textarea
-                  data-testid={`rules-${cat}`}
-                  className="min-h-40 font-mono text-xs"
-                  value={spec.keywords.join("\n")}
-                  onChange={(e) => editKeywords(cat, e.target.value)}
-                />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

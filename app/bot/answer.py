@@ -65,7 +65,14 @@ def search_query(text: str, turns: list[dict]) -> str:
 
 
 async def generate(
-    session: AsyncSession, conv: Conversation, msg: Message, cfg: Config, model: str
+    session: AsyncSession,
+    conv: Conversation,
+    msg: Message,
+    cfg: Config,
+    model: str,
+    *,
+    purpose: str = "answer",
+    extra_system: str = "",
 ) -> Answer:
     from rag.generate import history_messages, strip_markers, validate_citations
 
@@ -81,10 +88,11 @@ async def generate(
         f"Pesan pengguna:\n{text}"
     )
     messages = history_messages(turns) + [{"role": "user", "content": user_content}]
+    system = cfg["persona_prompt"] + ("\n\n" + extra_system if extra_system else "")
     result = await llm.complete(
-        purpose="answer",
+        purpose=purpose,
         model=model,
-        system=cfg["persona_prompt"],
+        system=system,
         messages=messages,
         max_tokens=cfg["max_output_tokens"],
         temperature=0.3,

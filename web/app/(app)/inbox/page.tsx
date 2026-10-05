@@ -6,16 +6,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ContactPanel } from "@/components/inbox/contact-panel";
 import { ConversationList, type Filters } from "@/components/inbox/conversation-list";
 import { Thread } from "@/components/inbox/thread";
+import { useT } from "@/lib/i18n";
 
 function Inbox() {
   const params = useSearchParams();
   const router = useRouter();
+  const t = useT();
   const selected = params.get("c") ? Number(params.get("c")) : null;
   const [filters, setFilters] = useState<Filters>({
     channel: "",
     status: "OPEN",
     flag: params.get("flag") ?? "",
     mode: "",
+    label: "",
     q: "",
   });
 
@@ -31,7 +34,7 @@ function Inbox() {
         <Thread key={selected} id={selected} />
       ) : (
         <div className="flex items-center justify-center bg-card text-sm text-muted-foreground">
-          Select a conversation
+          {t("inbox.select")}
         </div>
       )}
       <div className="hidden min-h-0 xl:block">

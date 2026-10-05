@@ -7,10 +7,11 @@ import { channelName, SeverityDot } from "@/components/badges";
 import { NativeSelect } from "@/components/native-select";
 import { Input } from "@/components/ui/input";
 import { timeAgo } from "@/lib/format";
-import type { Conversation } from "@/lib/types";
+import { useT } from "@/lib/i18n";
+import type { Conversation, LabelRef } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export type Filters = { channel: string; status: string; flag: string; mode: string; q: string };
+export type Filters = { channel: string; status: string; flag: string; mode: string; label: string; q: string };
 
 export function ConversationList({
   filters,
@@ -23,10 +24,12 @@ export function ConversationList({
   selected: number | null;
   onSelect: (id: number) => void;
 }) {
+  const t = useT();
   const params = new URLSearchParams(
     Object.entries(filters).filter(([, v]) => v) as [string, string][],
   ).toString();
   const { data, error } = useSWR<Conversation[]>(`/conversations?${params}`);
+  const { data: labels } = useSWR<LabelRef[]>("/labels");
   const set = (k: keyof Filters) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) =>
     setFilters({ ...filters, [k]: e.target.value });
 
@@ -35,62 +38,75 @@ export function ConversationList({
       <div className="space-y-2 p-3">
         <div className="relative">
           <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />
-          <Input placeholder="Search" value={filters.q} onChange={set("q")} className="pl-9" />
+          <Input placeholder={t("inbox.searchPlaceholder")} value={filters.q} onChange={set("q")} className="pl-9" />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <NativeSelect
-            aria-label="Channel"
+            aria-label={t("inbox.filterChannel")}
             value={filters.channel}
             onChange={set("channel")}
             options={[
-              { value: "", label: "All channels" },
+              { value: "", label: t("inbox.allChannels") },
               { value: "whatsapp", label: "WhatsApp" },
               { value: "messenger", label: "Messenger" },
               { value: "instagram", label: "Instagram" },
             ]}
           />
           <NativeSelect
-            aria-label="Status"
+            aria-label={t("inbox.filterStatus")}
             value={filters.status}
             onChange={set("status")}
             options={[
-              { value: "", label: "Any status" },
-              { value: "OPEN", label: "Open" },
-              { value: "RESOLVED", label: "Resolved" },
+              { value: "", label: t("inbox.anyStatus") },
+              { value: "OPEN", label: t("inbox.open") },
+              { value: "RESOLVED", label: t("inbox.resolved") },
             ]}
           />
           <NativeSelect
-            aria-label="Flag"
+            aria-label={t("inbox.filterFlag")}
             value={filters.flag}
             onChange={set("flag")}
             options={[
-              { value: "", label: "Any flag" },
-              { value: "flagged", label: "Flagged" },
-              { value: "high", label: "High and above" },
-              { value: "emergency", label: "Emergency" },
+              { value: "", label: t("inbox.anyFlag") },
+              { value: "flagged", label: t("inbox.flagged") },
+              { value: "high", label: t("inbox.highUp") },
+              { value: "emergency", label: t("inbox.emergency") },
             ]}
           />
           <NativeSelect
-            aria-label="Mode"
+            aria-label={t("inbox.filterMode")}
             value={filters.mode}
             onChange={set("mode")}
             options={[
-              { value: "", label: "Bot and staff" },
-              { value: "BOT", label: "Bot" },
-              { value: "HUMAN", label: "Staff handling" },
+              { value: "", label: t("inbox.botAndStaff") },
+              { value: "BOT", label: t("inbox.bot") },
+              { value: "HUMAN", label: t("inbox.staffHandling") },
             ]}
           />
+          {(labels?.length ?? 0) > 0 && (
+            <NativeSelect
+              aria-label={t("inbox.filterLabel")}
+              className="col-span-2"
+              value={filters.label}
+              onChange={set("label")}
+              options={[
+                { value: "", label: t("inbox.anyLabel") },
+                ...(labels ?? []).map((l) => ({ value: String(l.id), label: l.name })),
+              ]}
+            />
+          )}
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-2 pb-2" data-testid="conversation-list">
         {error && <p className="p-3 text-sm text-destructive">{error.message}</p>}
-        {data?.length === 0 && <p className="p-3 text-sm text-muted-foreground">No conversations.</p>}
+        {data?.length === 0 && <p className="p-3 text-sm text-muted-foreground">{t("inbox.empty")}</p>}
         {data?.map((c) => {
           const meta = [
-            channelName(c.channel) + (c.simulated ? " (sim)" : ""),
-            c.mode === "HUMAN" ? "Staff handling" : "",
-            c.status === "RESOLVED" ? "Resolved" : "",
-            c.opted_out ? "Opted out" : "",
+            channelName(c.channel) + (c.simulated ? ` (${t("channel.simulated")})` : ""),
+            c.mode === "HUMAN" ? t("inbox.staffHandling") : "",
+            c.status === "RESOLVED" ? t("inbox.resolved") : "",
+            c.opted_out ? t("inbox.optedOut") : "",
+            ...c.labels.map((l) => l.name),
           ].filter(Boolean);
           return (
             <button
@@ -107,14 +123,14 @@ export function ConversationList({
                 <span className={cn("flex-1 truncate text-sm", c.unread_count > 0 ? "font-semibold" : "font-medium")}>
                   {c.contact_name || c.identity?.external_id}
                 </span>
-                <span className="text-xs text-muted-foreground">{timeAgo(c.last_message_at)}</span>
+                <span className="text-xs text-muted-foreground">{timeAgo(c.last_message_at, t)}</span>
               </div>
               <div className="mt-0.5 flex items-center gap-2">
                 <span className={cn("flex-1 truncate text-[13px]", c.unread_count > 0 ? "text-foreground" : "text-muted-foreground")}>
                   {c.last_preview}
                 </span>
                 {c.unread_count > 0 && (
-                  <span className="min-w-5 rounded-full bg-primary px-1.5 text-center text-[11px] font-semibold leading-5 text-white">
+                  <span className="min-w-5 rounded-full bg-primary px-1.5 text-center text-[11px] font-semibold leading-5 text-primary-foreground">
                     {c.unread_count}
                   </span>
                 )}

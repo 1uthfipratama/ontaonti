@@ -7,6 +7,7 @@ import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { idr } from "@/lib/format";
+import { useT, type T } from "@/lib/i18n";
 
 type Dashboard = {
   timezone: string;
@@ -63,23 +64,23 @@ function Tile({ label, value, sub, icon, testId }: { label: string; value: strin
 
 type Level = "ok" | "warning" | "critical";
 const LEVEL: Record<Level, { color: string; icon: React.ReactNode; text: string }> = {
-  ok: { color: "var(--viz-seq)", icon: <CheckCircle2 className="size-3.5 text-[var(--viz-good)]" />, text: "Within limit" },
-  warning: { color: "var(--viz-warning)", icon: <AlertTriangle className="size-3.5 text-[var(--viz-warning)]" />, text: "Approaching limit" },
-  critical: { color: "var(--viz-critical)", icon: <AlertOctagon className="size-3.5 text-[var(--viz-critical)]" />, text: "Limit reached" },
+  ok: { color: "var(--viz-seq)", icon: <CheckCircle2 className="size-3.5 text-[var(--viz-good)]" />, text: "dash.ok" },
+  warning: { color: "var(--viz-warning)", icon: <AlertTriangle className="size-3.5 text-[var(--viz-warning)]" />, text: "dash.warn" },
+  critical: { color: "var(--viz-critical)", icon: <AlertOctagon className="size-3.5 text-[var(--viz-critical)]" />, text: "dash.over" },
 };
 
 /** Meter: one ratio against a limit, same-ramp track, optional alert tick. */
-function Meter({ label, used, limit, alertAt, format, level, note }: {
-  label: string; used: number; limit: number; alertAt?: number; format: (n: number) => string; level: Level; note?: string;
+function Meter({ id, label, used, limit, alertAt, format, level, note, t }: {
+  id: string; label: string; used: number; limit: number; alertAt?: number; format: (n: number) => string; level: Level; note?: string; t: T;
 }) {
   const pct = limit > 0 ? Math.min(used / limit, 1) : 0;
   const L = LEVEL[level];
   return (
-    <div className="space-y-2" data-testid={`meter-${label}`}>
+    <div className="space-y-2" data-testid={`meter-${id}`}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-sm text-[var(--viz-ink-2)]">{label}</span>
         <span className="text-sm text-[var(--viz-ink)]">
-          <b>{format(used)}</b> / {limit > 0 ? format(limit) : "no limit"}
+          <b>{format(used)}</b> / {limit > 0 ? format(limit) : t("dash.noLimit")}
         </span>
       </div>
       <div
@@ -89,27 +90,27 @@ function Meter({ label, used, limit, alertAt, format, level, note }: {
         aria-valuemin={0}
         aria-valuemax={limit || 1}
         aria-valuenow={used}
-        title={`${format(used)} of ${limit > 0 ? format(limit) : "no limit"} (${Math.round(pct * 100)}%)`}
+        title={`${Math.round(pct * 100)}%`}
       >
         <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: L.color }} />
         {alertAt !== undefined && limit > 0 && (
           <div
             className="absolute -top-1 h-[18px] w-px bg-[var(--viz-ink-2)]"
             style={{ left: `${alertAt * 100}%` }}
-            title={`Alert at ${Math.round(alertAt * 100)}%`}
+            title={`${Math.round(alertAt * 100)}%`}
           />
         )}
       </div>
       <div className="flex items-center gap-1 text-xs text-[var(--viz-ink-2)]">
         {L.icon}
-        {L.text} · {Math.round(pct * 100)}%{note ? ` · ${note}` : ""}
+        {t(L.text)} · {Math.round(pct * 100)}%{note ? ` · ${note}` : ""}
       </div>
     </div>
   );
 }
 
 /** One series, horizontal bars (<=24px, rounded data-end), value at the tip, hover tooltip. */
-function Bars({ title, data, table }: { title: string; data: { label: string; value: number }[]; table: boolean }) {
+function Bars({ title, data, table, t }: { title: string; data: { label: string; value: number }[]; table: boolean; t: T }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   if (table) {
     return (
@@ -139,7 +140,7 @@ function Bars({ title, data, table }: { title: string; data: { label: string; va
             />
             <span className="text-xs text-[var(--viz-ink)]">{d.value}</span>
             <span className="pointer-events-none absolute -top-7 left-2 z-10 hidden rounded bg-[var(--viz-ink)] px-2 py-0.5 text-[11px] text-[var(--viz-surface)] group-hover:block">
-              {d.label}: {d.value} conversation{d.value === 1 ? "" : "s"}
+              {d.label}: {t("dash.conversations", { n: d.value })}
             </span>
           </div>
         </div>
@@ -149,10 +150,11 @@ function Bars({ title, data, table }: { title: string; data: { label: string; va
 }
 
 export default function DashboardPage() {
+  const t = useT();
   const { data, error } = useSWR<Dashboard>("/dashboard", { refreshInterval: 30000 });
   const [table, setTable] = useState(false);
   if (error) return <div className="p-6 text-sm text-destructive">{error.message}</div>;
-  if (!data) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
+  if (!data) return <div className="p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
 
   const series = (k: "today" | "month") =>
     Object.entries(data.conversations[k]).map(([ch, n]) => ({ label: CHANNEL_LABEL[ch] ?? ch, value: n }));
@@ -165,70 +167,66 @@ export default function DashboardPage() {
 
   return (
     <div className="viz-root h-full space-y-4 overflow-y-auto p-6">
-      <p className="text-xs text-muted-foreground">Days and months follow {data.timezone}. Updates every 30 seconds.</p>
-
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Key figures">
-        <Tile label="Conversations today" value={compact(todayTotal)} sub={`${compact(Object.values(data.conversations.month).reduce((a, b) => a + b, 0))} this month`} testId="tile-today" />
-        <Tile label="Median first response · bot" value={duration(data.response_times.bot_median_s)} sub={`${data.response_times.bot_samples} replies, last ${data.response_times.days} days`} />
-        <Tile label="Median first response · human" value={duration(data.response_times.human_median_s)} sub={`${data.response_times.human_samples} replies, last ${data.response_times.days} days`} />
-        <Tile label="Contacts" value={compact(data.contacts.total)} sub={`${data.contacts.subscribed} subscribed · ${data.contacts.opted_out} opted out`} />
+        <Tile label={t("dash.convToday")} value={compact(todayTotal)} sub={t("dash.thisMonth", { n: compact(Object.values(data.conversations.month).reduce((a, b) => a + b, 0)) })} testId="tile-today" />
+        <Tile label={t("dash.firstBot")} value={duration(data.response_times.bot_median_s)} sub={t("dash.replies", { n: data.response_times.bot_samples })} />
+        <Tile label={t("dash.firstStaff")} value={duration(data.response_times.human_median_s)} sub={t("dash.replies", { n: data.response_times.human_samples })} />
+        <Tile label={t("dash.contacts")} value={compact(data.contacts.total)} sub={t("dash.contactsSub", { sub: data.contacts.subscribed, out: data.contacts.opted_out })} />
       </section>
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Open cases by severity">
         <Link href="/cases">
-          <Tile label="Open cases · emergency" value={String(cases.emergency)} icon={<AlertOctagon className="size-3.5 text-[var(--viz-critical)]" />} testId="tile-emergency" />
+          <Tile label={t("dash.caseEmergency")} value={String(cases.emergency)} icon={<AlertOctagon className="size-3.5 text-[var(--viz-critical)]" />} testId="tile-emergency" />
         </Link>
         <Link href="/cases">
-          <Tile label="Open cases · high" value={String(cases.high)} icon={<AlertTriangle className="size-3.5 text-[var(--viz-serious)]" />} />
+          <Tile label={t("dash.caseHigh")} value={String(cases.high)} icon={<AlertTriangle className="size-3.5 text-[var(--viz-serious)]" />} />
         </Link>
         <Link href="/cases">
-          <Tile label="Open cases · low" value={String(cases.low)} icon={<Info className="size-3.5 text-[var(--viz-warning)]" />} />
+          <Tile label={t("dash.caseLow")} value={String(cases.low)} icon={<Info className="size-3.5 text-[var(--viz-warning)]" />} />
         </Link>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Costs this month</CardTitle>
+            <CardTitle className="text-sm">{t("dash.costs")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <Meter
-              label="AI spend vs budget"
+              id="ai"
+              label={t("dash.aiSpend")}
               used={ai.spent_idr}
               limit={ai.budget_idr}
               alertAt={ai.alert_ratio}
               format={(n) => idr(n)}
               level={aiLevel}
-              note={`at 100%: ${ai.fallback_mode === "fixed_reply" ? "fixed reply + case" : "cheaper classifier model"}`}
+              note={ai.fallback_mode === "fixed_reply" ? t("dash.fallbackFixed") : t("dash.fallbackModel")}
+              t={t}
             />
-            <div className="text-xs text-[var(--viz-ink-2)]">
-              {ai.calls} LLM calls ({ai.errors} failed) ·{" "}
-              {Object.entries(ai.by_purpose).map(([k, v]) => `${k} ${idr(v)}`).join(" · ") || "no spend yet"}
-            </div>
+            <div className="text-xs text-[var(--viz-ink-2)]">{t("dash.calls", { n: ai.calls, failed: ai.errors })}</div>
             <Meter
-              label="WhatsApp template messages vs free tier"
+              id="wa"
+              label={t("dash.waTemplates")}
               used={wa.template_messages_month}
               limit={wa.free_tier}
               format={(n) => compact(n)}
               level={waLevel}
-              note={`${wa.messages_month} WhatsApp messages sent in total`}
+              note={t("dash.waSent", { n: wa.messages_month })}
+              t={t}
             />
-            <p className="text-[11px] text-muted-foreground">
-              Free-tier size and per-message rates are settings (Settings → WhatsApp pricing); check Meta&apos;s current rate card.
-            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center">
-            <CardTitle className="flex-1 text-sm">Active conversations by channel</CardTitle>
+            <CardTitle className="flex-1 text-sm">{t("dash.byChannel")}</CardTitle>
             <button className="text-xs font-medium text-primary hover:underline" onClick={() => setTable(!table)}>
-              {table ? "Show bars" : "Show table"}
+              {table ? t("common.chart") : t("common.table")}
             </button>
           </CardHeader>
           <CardContent className="grid gap-6 sm:grid-cols-2">
-            <Bars title="Today" data={series("today")} table={table} />
-            <Bars title="This month" data={series("month")} table={table} />
+            <Bars title={t("common.today")} data={series("today")} table={table} t={t} />
+            <Bars title={t("common.thisMonth")} data={series("month")} table={table} t={t} />
           </CardContent>
         </Card>
       </div>

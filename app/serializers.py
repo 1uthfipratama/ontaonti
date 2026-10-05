@@ -4,6 +4,13 @@ from app.db import as_utc
 from app.models import Contact, ContactIdentity, Conversation, Message, StaffUser
 
 
+def _loaded(obj, attr: str) -> list:
+    """A relationship's value if already loaded; never triggers lazy IO (async)."""
+    from sqlalchemy import inspect
+
+    return [] if attr in inspect(obj).unloaded else list(getattr(obj, attr) or [])
+
+
 def iso(dt) -> str | None:
     dt = as_utc(dt)
     return dt.isoformat() if dt else None
@@ -61,6 +68,7 @@ def conversation(c: Conversation) -> dict:
         "flag_severity": c.flag_severity,
         "flag_category": c.flag_category,
         "opted_out": c.contact.opted_out if c.contact else False,
+        "labels": [{"id": lb.id, "name": lb.name} for lb in _loaded(c, "labels")],
     }
 
 

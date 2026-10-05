@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { LangToggle } from "@/components/lang-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, errorMessage } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 export default function LoginPage() {
+  const t = useT();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +27,7 @@ export default function LoginPage() {
       await api("/auth/login", { json: { email, password } });
       router.replace("/inbox");
     } catch (err) {
-      setError(errorMessage(err));
+      setError(errorMessage(err, t));
     } finally {
       setBusy(false);
     }
@@ -32,7 +35,10 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
-      <ThemeToggle className="absolute top-4 right-4" />
+      <div className="absolute top-4 right-4 flex items-center gap-1">
+        <LangToggle className="mr-1" />
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm rounded-lg bg-card p-8 shadow-[0_2px_4px_rgba(39,43,50,0.06)]">
         <div className="mb-6 flex items-center gap-2.5">
           <div className="flex size-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
@@ -40,12 +46,12 @@ export default function LoginPage() {
           </div>
           <div className="leading-tight">
             <div className="font-semibold">Onti Erlina</div>
-            <div className="text-xs text-muted-foreground">TB companion hub · staff sign-in</div>
+            <div className="text-xs text-muted-foreground">{t("login.subtitle")}</div>
           </div>
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
+            <Label htmlFor="email" className="text-xs text-muted-foreground">{t("login.email")}</Label>
             <Input
               id="email"
               type="email"
@@ -56,7 +62,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-xs text-muted-foreground">Password</Label>
+            <Label htmlFor="password" className="text-xs text-muted-foreground">{t("login.password")}</Label>
             <Input
               id="password"
               type="password"
@@ -68,11 +74,11 @@ export default function LoginPage() {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
+            {busy ? t("login.submitting") : t("login.submit")}
           </Button>
         </form>
       </div>
-      <p className="mt-4 text-xs text-warning-foreground">Prototype — test data only. Not for real patient data.</p>
+      <p className="mt-4 text-xs text-subtle-foreground">{t("login.prototype")}</p>
     </div>
   );
 }

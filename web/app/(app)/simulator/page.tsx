@@ -14,24 +14,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, errorMessage } from "@/lib/api";
 import { clock } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import type { Channel, Conversation, Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const SAMPLES: { label: string; text: string; kind?: string }[] = [
-  { label: "Normal question", text: "Halo kak, berapa lama sih pengobatan TBC?" },
-  { label: "English question", text: "Is TB contagious through sharing plates?" },
-  { label: "Mild side effect", text: "Kenapa air kencing saya jadi warna oranye setelah minum obat?" },
-  { label: "Drug side effect (risky)", text: "Mata dan kulit saya jadi kuning sejak minum obat TBC" },
-  { label: "Emergency (risky)", text: "Saya batuk darah banyak dan sesak napas berat" },
-  { label: "Self-harm (risky)", text: "Aku capek berobat terus, rasanya ingin mati saja" },
-  { label: "Stopping treatment", text: "Obat saya habis dan saya mau berhenti pengobatan" },
-  { label: "Subscribe (LANGGANAN)", text: "LANGGANAN" },
-  { label: "Opt out (STOP)", text: "STOP" },
-  { label: "Opt back in (MULAI)", text: "MULAI" },
-  { label: "Send a photo", text: "", kind: "image" },
+const SAMPLES: { key: string; text: string; kind?: string }[] = [
+  { key: "normal", text: "Halo kak, berapa lama sih pengobatan TBC?" },
+  { key: "english", text: "Is TB contagious through sharing plates?" },
+  { key: "mild", text: "Kenapa air kencing saya jadi warna oranye setelah minum obat?" },
+  { key: "drug", text: "Mata dan kulit saya jadi kuning sejak minum obat TBC" },
+  { key: "emergency", text: "Saya batuk darah banyak dan sesak napas berat" },
+  { key: "selfharm", text: "Aku capek berobat terus, rasanya ingin mati saja" },
+  { key: "adherence", text: "Obat saya habis dan saya mau berhenti pengobatan" },
+  { key: "subscribe", text: "LANGGANAN" },
+  { key: "stop", text: "STOP" },
+  { key: "start", text: "MULAI" },
+  { key: "photo", text: "", kind: "image" },
 ];
 
 export default function SimulatorPage() {
+  const t = useT();
   const { mutate } = useSWRConfig();
   const [channel, setChannel] = useState<Channel>("whatsapp");
   const [userId, setUserId] = useState("demo1");
@@ -59,7 +61,7 @@ export default function SimulatorPage() {
       setText("");
       mutate((k) => typeof k === "string" && (k.startsWith("/simulator") || k.startsWith("/conversations")));
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e, t));
     } finally {
       setBusy(false);
     }
@@ -68,13 +70,10 @@ export default function SimulatorPage() {
   return (
     <div className="grid h-full grid-rows-[minmax(0,1fr)] grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)]">
       <div className="space-y-6 overflow-y-auto border-r border-border bg-card p-5">
-        <p className="text-sm text-muted-foreground">
-          Chat as a fake user. Messages go through the same safety checks and bot as real channels;
-          nothing is sent to Meta.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("sim.intro")}</p>
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Channel</Label>
+            <Label className="text-xs text-muted-foreground">{t("sim.channel")}</Label>
             <NativeSelect
               data-testid="sim-channel"
               className="w-full"
@@ -88,7 +87,7 @@ export default function SimulatorPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="uid" className="text-xs text-muted-foreground">Fake user id</Label>
+            <Label htmlFor="uid" className="text-xs text-muted-foreground">{t("sim.userId")}</Label>
             <Input
               id="uid"
               data-testid="sim-user"
@@ -97,22 +96,22 @@ export default function SimulatorPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="uname" className="text-xs text-muted-foreground">Display name</Label>
+            <Label htmlFor="uname" className="text-xs text-muted-foreground">{t("sim.name")}</Label>
             <Input id="uname" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
         </div>
         <div>
-          <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Quick messages</div>
+          <div className="mb-1.5 text-xs font-semibold text-muted-foreground">{t("sim.quick")}</div>
           <div className="-mx-2">
             {SAMPLES.map((s) => (
               <button
-                key={s.label}
+                key={s.key}
                 disabled={busy}
                 onClick={() => send(s.text, s.kind)}
                 className="block w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50"
                 title={s.text}
               >
-                {s.label}
+                {t(`sim.s.${s.key}`)}
               </button>
             ))}
           </div>
@@ -126,20 +125,19 @@ export default function SimulatorPage() {
             <div className="flex-1 leading-tight">
               <div className="text-sm font-semibold">Onti Erlina</div>
               <div className="text-xs text-muted-foreground">
-                {channelName(channel)} · simulated{conv?.mode === "HUMAN" ? " · staff handling" : ""}
+                {channelName(channel)} · {t("common.simulated")}
+                {conv?.mode === "HUMAN" ? ` · ${t("inbox.staffHandling").toLowerCase()}` : ""}
               </div>
             </div>
             {conv && (
               <Link className="text-xs font-medium text-primary hover:underline" href={`/inbox?c=${conv.id}`}>
-                Open in inbox →
+                {t("sim.openInbox")}
               </Link>
             )}
           </div>
           {conv?.mode === "HUMAN" && (
             <div className="flex items-center gap-3 border-b border-border bg-warning px-4 py-2 text-xs text-warning-foreground">
-              <span className="flex-1">
-                Staff is handling this chat (a risky message or a staff reply), so the bot stays silent.
-              </span>
+              <span className="flex-1">{t("sim.staffNotice")}</span>
               <button
                 className="font-semibold underline-offset-2 hover:underline"
                 onClick={async () => {
@@ -147,17 +145,17 @@ export default function SimulatorPage() {
                     await api(`/conversations/${conv.id}/mode`, { json: { mode: "BOT" } });
                     mutate((k) => typeof k === "string" && k.startsWith("/simulator"));
                   } catch (e) {
-                    toast.error(errorMessage(e));
+                    toast.error(errorMessage(e, t));
                   }
                 }}
               >
-                Hand back to bot
+                {t("sim.handBack")}
               </button>
             </div>
           )}
           <div className="flex-1 overflow-y-auto bg-muted px-4 py-4" data-testid="sim-thread">
             {!messages?.length && (
-              <p className="mt-12 text-center text-sm text-muted-foreground">Say hello to start a conversation.</p>
+              <p className="mt-12 text-center text-sm text-muted-foreground">{t("sim.empty")}</p>
             )}
             {messages
               ?.filter((m) => m.direction !== "note")
@@ -173,7 +171,7 @@ export default function SimulatorPage() {
                       )}
                     >
                       {!mine && m.sender_type === "agent" && (
-                        <div className="mb-0.5 text-xs font-semibold text-primary">Staf</div>
+                        <div className="mb-0.5 text-xs font-semibold text-primary">{t("sim.staff")}</div>
                       )}
                       <div className="whitespace-pre-wrap break-words">
                         <WaText text={m.text} />
@@ -198,9 +196,9 @@ export default function SimulatorPage() {
               data-testid="sim-input"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Type a message as the user…"
+              placeholder={t("sim.placeholder")}
             />
-            <Button type="submit" size="icon" disabled={busy || !text.trim()} data-testid="sim-send" aria-label="Send">
+            <Button type="submit" size="icon" disabled={busy || !text.trim()} data-testid="sim-send" aria-label={t("thread.send")}>
               <SendHorizontal />
             </Button>
           </form>

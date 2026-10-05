@@ -38,6 +38,11 @@ export async function api<T = unknown>(path: string, opts: Options = {}): Promis
 
 export const fetcher = <T,>(path: string) => api<T>(path);
 
-export function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
+/** Error text for a toast; known API messages are translated when `t` is given. */
+export function errorMessage(e: unknown, t?: (key: string) => string): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (!t) return msg;
+  const key = `err.${msg}`;
+  const tr = t(key);
+  return tr === key ? msg : tr;
 }

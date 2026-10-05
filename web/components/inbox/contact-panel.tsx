@@ -4,7 +4,8 @@ import Link from "next/link";
 import useSWR from "swr";
 
 import { channelName, SeverityBadge } from "@/components/badges";
-import { clock, timeAgo } from "@/lib/format";
+import { day, timeAgo } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import type { Case, Conversation } from "@/lib/types";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -26,6 +27,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function ContactPanel({ id }: { id: number }) {
+  const t = useT();
   const { data: conv } = useSWR<Conversation>(`/conversations/${id}`);
   const { data: cases } = useSWR<Case[]>(`/cases?status=all&conversation_id=${id}`);
   const c = conv?.contact;
@@ -36,27 +38,27 @@ export function ContactPanel({ id }: { id: number }) {
         <Link href={`/contacts?id=${c.id}`} className="text-[15px] font-semibold hover:text-primary">
           {c.display_name}
         </Link>
-        <div className="text-xs text-muted-foreground">Contact since {clock(c.created_at)}</div>
+        <div className="text-xs text-muted-foreground">{t("contact.since", { date: day(c.created_at) })}</div>
       </div>
 
-      <Section title="Details">
-        {c.phone && <Row label="Phone" value={c.phone} />}
-        <Row label="Messages" value={c.opted_out ? <span className="text-destructive">Opted out</span> : "Active"} />
-        <Row label="Broadcasts" value={c.broadcast_opt_in ? "Subscribed" : "Not subscribed"} />
+      <Section title={t("contact.details")}>
+        {c.phone && <Row label={t("contact.phone")} value={c.phone} />}
+        <Row label={t("contact.messages")} value={c.opted_out ? <span className="text-destructive">{t("contact.optedOut")}</span> : t("contact.active")} />
+        <Row label={t("contact.broadcasts")} value={c.broadcast_opt_in ? t("contact.subscribed") : t("contact.notSubscribed")} />
       </Section>
 
-      <Section title="Channels">
+      <Section title={t("contact.channels")}>
         {c.identities.map((i) => (
           <Row
             key={i.id}
             label={channelName(i.channel)}
-            value={<span className="font-mono text-xs">{i.simulated ? "simulated" : i.external_id}</span>}
+            value={<span className="font-mono text-xs">{i.simulated ? t("common.simulated") : i.external_id}</span>}
           />
         ))}
       </Section>
 
-      <Section title="Cases">
-        {cases?.length === 0 && <p className="text-sm text-muted-foreground">No cases.</p>}
+      <Section title={t("contact.cases")}>
+        {cases?.length === 0 && <p className="text-sm text-muted-foreground">{t("contact.noCases")}</p>}
         {cases?.map((k) => (
           <Link
             key={k.id}
@@ -66,10 +68,10 @@ export function ContactPanel({ id }: { id: number }) {
           >
             <div className="flex items-center justify-between gap-2">
               <SeverityBadge severity={k.severity} category={k.category} />
-              <span className="text-xs text-muted-foreground">{timeAgo(k.created_at)}</span>
+              <span className="text-xs text-muted-foreground">{timeAgo(k.created_at, t)}</span>
             </div>
             <div className="text-xs text-muted-foreground">
-              #{k.id} · {k.status.toLowerCase()}
+              #{k.id} · {t(`cases.status.${k.status}`)}
               {k.assigned_name ? ` · ${k.assigned_name}` : ""}
             </div>
           </Link>
@@ -77,7 +79,7 @@ export function ContactPanel({ id }: { id: number }) {
       </Section>
 
       {c.notes && (
-        <Section title="Notes">
+        <Section title={t("contact.notes")}>
           <p className="whitespace-pre-wrap text-sm">{c.notes}</p>
         </Section>
       )}

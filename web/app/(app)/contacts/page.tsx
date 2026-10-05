@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api, errorMessage } from "@/lib/api";
 import { clock, timeAgo } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { useCanAct } from "@/lib/session";
 import type { Channel, Contact, Conversation, Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Detail({ id, all }: { id: number; all: ContactRow[] }) {
+  const t = useT();
   const { mutate } = useSWRConfig();
   const router = useRouter();
   const canAct = useCanAct();
@@ -50,11 +52,11 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
       toast.success(ok);
       refresh();
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e, t));
     }
   }
 
-  if (!c) return <div className="bg-card p-6 text-sm text-muted-foreground">Loading…</div>;
+  if (!c) return <div className="bg-card p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
   const others = all.filter((o) => o.id !== id);
   let lastChannel = "";
   return (
@@ -62,7 +64,7 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
       <div className="flex min-h-0 flex-col bg-card">
         <div className="border-b border-border px-6 py-3">
           <h2 className="text-[15px] font-semibold">{c.display_name}</h2>
-          <p className="text-xs text-muted-foreground">All messages across channels, oldest first</p>
+          <p className="text-xs text-muted-foreground">{t("contacts.timeline")}</p>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-4" data-testid="timeline">
           {timeline?.map((m) => {
@@ -85,28 +87,28 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
       </div>
 
       <div className="hidden space-y-6 overflow-y-auto border-l border-border bg-card p-5 text-sm xl:block">
-        <Section title="Channels">
+        <Section title={t("contact.channels")}>
           {c.identities.map((i) => (
             <div key={i.id} className="flex justify-between gap-2">
               <span className="text-muted-foreground">{channelName(i.channel)}</span>
-              <span className="truncate font-mono text-xs">{i.simulated ? "simulated" : i.external_id}</span>
+              <span className="truncate font-mono text-xs">{i.simulated ? t("common.simulated") : i.external_id}</span>
             </div>
           ))}
           {c.conversations.map((v) => (
             <Link key={v.id} href={`/inbox?c=${v.id}`} className="block text-xs text-primary hover:underline">
-              Open {channelName(v.channel)} conversation · {timeAgo(v.last_message_at)}
+              {t("contacts.openConversation", { channel: channelName(v.channel) })} · {timeAgo(v.last_message_at, t)}
             </Link>
           ))}
         </Section>
 
-        <Section title="Consent">
+        <Section title={t("contacts.consent")}>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Messages</span>
-            {c.opted_out ? <span className="text-destructive">Opted out</span> : <span>Active</span>}
+            <span className="text-muted-foreground">{t("contact.messages")}</span>
+            {c.opted_out ? <span className="text-destructive">{t("contact.optedOut")}</span> : <span>{t("contact.active")}</span>}
           </div>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground">Broadcasts</span>
-            <span>{c.broadcast_opt_in ? "Subscribed" : "Not subscribed"}</span>
+            <span className="text-muted-foreground">{t("contact.broadcasts")}</span>
+            <span>{c.broadcast_opt_in ? t("contact.subscribed") : t("contact.notSubscribed")}</span>
           </div>
           {canAct && (
             <Button
@@ -114,10 +116,10 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
               variant="ghost"
               className="-ml-2 text-primary"
               onClick={() =>
-                run(() => api(`/contacts/${id}/consent`, { json: { broadcast: !c.broadcast_opt_in } }), "Consent recorded")
+                run(() => api(`/contacts/${id}/consent`, { json: { broadcast: !c.broadcast_opt_in } }), t("contacts.consentRecorded"))
               }
             >
-              {c.broadcast_opt_in ? "Revoke broadcast consent" : "Record broadcast consent"}
+              {c.broadcast_opt_in ? t("contacts.revokeConsent") : t("contacts.recordConsent")}
             </Button>
           )}
           <ul className="space-y-0.5 text-xs text-muted-foreground">
@@ -129,12 +131,12 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
           </ul>
         </Section>
 
-        <Section title="Notes">
+        <Section title={t("contact.notes")}>
           <Textarea
             value={notes ?? c.notes}
             onChange={(e) => setNotes(e.target.value)}
             disabled={!canAct}
-            placeholder="Add notes about this contact"
+            placeholder={t("contacts.notesPlaceholder")}
             className="min-h-20"
           />
           {canAct && notes !== null && notes !== c.notes && (
@@ -144,23 +146,23 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
                 run(async () => {
                   await api(`/contacts/${id}`, { method: "PATCH", json: { notes } });
                   setNotes(null);
-                }, "Notes saved")
+                }, t("common.saved"))
               }
             >
-              Save notes
+              {t("contacts.saveNotes")}
             </Button>
           )}
         </Section>
 
         {canAct && others.length > 0 && (
-          <Section title="Merge a duplicate into this contact">
+          <Section title={t("contacts.merge")}>
             <NativeSelect
               data-testid="merge-select"
               className="w-full"
               value={mergeId}
               onChange={(e) => setMergeId(e.target.value)}
               options={[
-                { value: "", label: "Choose a contact" },
+                { value: "", label: t("contacts.chooseContact") },
                 ...others.map((o) => ({
                   value: String(o.id),
                   label: `${o.display_name} (${o.identities.map((i) => channelName(i.channel)).join(", ")})`,
@@ -176,13 +178,13 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
                   await api(`/contacts/${id}/merge`, { json: { source_contact_id: Number(mergeId) } });
                   setMergeId("");
                   router.replace(`/contacts?id=${id}`);
-                }, "Contacts merged")
+                }, t("contacts.merged"))
               }
             >
-              Merge
+              {t("contacts.mergeButton")}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Channels, conversations, cases and consents move here. An opt-out always wins.
+              {t("contacts.mergeHint")}
             </p>
           </Section>
         )}
@@ -194,6 +196,7 @@ function Detail({ id, all }: { id: number; all: ContactRow[] }) {
 function Contacts() {
   const params = useSearchParams();
   const router = useRouter();
+  const t = useT();
   const selected = params.get("id") ? Number(params.get("id")) : null;
   const [q, setQ] = useState("");
   const { data } = useSWR<ContactRow[]>(`/contacts${q ? `?q=${encodeURIComponent(q)}` : ""}`);
@@ -202,7 +205,7 @@ function Contacts() {
       <div className="flex flex-col border-r border-border bg-card">
         <div className="relative p-3">
           <Search className="pointer-events-none absolute top-5.5 left-6 size-4 text-muted-foreground" />
-          <Input placeholder="Search name, phone or id" value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
+          <Input placeholder={t("contacts.search")} value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
         </div>
         <div className="flex-1 overflow-y-auto px-2 pb-2">
           {data?.map((c) => (
@@ -216,13 +219,13 @@ function Contacts() {
             >
               <div className="flex items-center gap-2">
                 <span className="flex-1 truncate text-sm font-medium">{c.display_name}</span>
-                <span className="text-xs text-muted-foreground">{timeAgo(c.last_message_at)}</span>
+                <span className="text-xs text-muted-foreground">{timeAgo(c.last_message_at, t)}</span>
               </div>
               <div className="mt-0.5 truncate text-xs text-muted-foreground">
                 {[
                   c.identities.map((i) => channelName(i.channel)).join(", "),
-                  c.broadcast_opt_in ? "subscribed" : "",
-                  c.opted_out ? "opted out" : "",
+                  c.broadcast_opt_in ? t("contacts.subscribed") : "",
+                  c.opted_out ? t("contacts.optedOut") : "",
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -234,7 +237,7 @@ function Contacts() {
       {selected ? (
         <Detail key={selected} id={selected} all={data ?? []} />
       ) : (
-        <div className="flex items-center justify-center bg-card text-sm text-muted-foreground">Select a contact</div>
+        <div className="flex items-center justify-center bg-card text-sm text-muted-foreground">{t("contacts.select")}</div>
       )}
     </div>
   );

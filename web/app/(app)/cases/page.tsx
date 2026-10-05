@@ -6,17 +6,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
 
-import { channelName, SeverityBadge, SeverityDot } from "@/components/badges";
+import { channelName, SeverityBadge, SeverityDot, useCategory } from "@/components/badges";
 import { NativeSelect } from "@/components/native-select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api, errorMessage } from "@/lib/api";
 import { clock, timeAgo } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { useCanAct } from "@/lib/session";
 import type { Case } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const STATUS_LABEL: Record<string, string> = { OPEN: "Unclaimed", CLAIMED: "Claimed", RESOLVED: "Resolved" };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -28,6 +27,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function CaseDetail({ id }: { id: number }) {
+  const t = useT();
   const { mutate } = useSWRConfig();
   const canAct = useCanAct();
   const { data: c } = useSWR<Case>(`/cases/${id}`);
@@ -40,44 +40,44 @@ function CaseDetail({ id }: { id: number }) {
       await api(`/cases/${id}${path}`, { method: "POST", json });
       refresh();
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e, t));
     }
   }
 
-  if (!c) return <div className="bg-card p-6 text-sm text-muted-foreground">Loading…</div>;
+  if (!c) return <div className="bg-card p-6 text-sm text-muted-foreground">{t("common.loading")}</div>;
   return (
     <div className="h-full overflow-y-auto bg-card">
       <div className="flex items-start gap-4 border-b border-border px-6 py-4">
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h2 className="text-[15px] font-semibold">Case #{c.id}</h2>
+            <h2 className="text-[15px] font-semibold">{t("cases.title", { id: c.id })}</h2>
             <SeverityBadge severity={c.severity} category={c.category} />
           </div>
           <div className="mt-0.5 text-xs text-muted-foreground">
-            {STATUS_LABEL[c.status]} · opened {clock(c.created_at)}
+            {t(`cases.status.${c.status}`)} · {t("cases.opened", { date: clock(c.created_at) })}
           </div>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           <Link href={`/inbox?c=${c.conversation_id}`}>
-            <Button size="sm" variant="ghost">Open conversation</Button>
+            <Button size="sm" variant="ghost">{t("cases.openConversation")}</Button>
           </Link>
           {canAct && c.status === "OPEN" && (
             <Button size="sm" variant="outline" onClick={() => act("/claim")} data-testid="claim-case">
-              Claim
+              {t("cases.claim")}
             </Button>
           )}
           {canAct && c.status === "CLAIMED" && (
             <Button size="sm" variant="ghost" onClick={() => act("/status", { status: "OPEN" })}>
-              Unclaim
+              {t("cases.unclaim")}
             </Button>
           )}
           {canAct && c.status !== "RESOLVED" && (
             <>
               <Button size="sm" variant="outline" onClick={() => act("/resolve", { return_to_bot: false })}>
-                Resolve, keep staff mode
+                {t("cases.resolveKeep")}
               </Button>
               <Button size="sm" onClick={() => act("/resolve", { return_to_bot: true })} data-testid="resolve-case">
-                Resolve &amp; return to bot
+                {t("cases.resolveBot")}
               </Button>
             </>
           )}
@@ -86,23 +86,23 @@ function CaseDetail({ id }: { id: number }) {
 
       <div className="space-y-8 px-6 py-5">
         <div className="grid grid-cols-2 gap-x-8 gap-y-4 lg:grid-cols-4">
-          <Field label="Contact">{c.contact_name}</Field>
-          <Field label="Channel">{channelName(c.channel)}</Field>
-          <Field label="Assigned to">{c.assigned_name ?? "Nobody yet"}</Field>
-          <Field label="Conversation mode">{c.conversation_mode === "HUMAN" ? "Staff handling" : "Bot"}</Field>
+          <Field label={t("cases.contact")}>{c.contact_name}</Field>
+          <Field label={t("cases.channel")}>{channelName(c.channel)}</Field>
+          <Field label={t("cases.assigned")}>{c.assigned_name ?? t("cases.nobody")}</Field>
+          <Field label={t("cases.mode")}>{c.conversation_mode === "HUMAN" ? t("inbox.staffHandling") : t("inbox.bot")}</Field>
         </div>
 
         {c.trigger_text && (
           <section>
-            <h3 className="mb-2 text-xs font-semibold text-muted-foreground">Message that raised it</h3>
+            <h3 className="mb-2 text-xs font-semibold text-muted-foreground">{t("cases.trigger")}</h3>
             <p className="rounded-lg bg-secondary px-4 py-3 text-sm">{c.trigger_text}</p>
             <p className="mt-1.5 text-xs text-muted-foreground whitespace-pre-wrap">{c.reason}</p>
           </section>
         )}
 
         <section>
-          <h3 className="mb-2 text-xs font-semibold text-muted-foreground">Notes</h3>
-          {c.notes?.length === 0 && <p className="text-sm text-muted-foreground">No notes yet.</p>}
+          <h3 className="mb-2 text-xs font-semibold text-muted-foreground">{t("cases.notes")}</h3>
+          {c.notes?.length === 0 && <p className="text-sm text-muted-foreground">{t("cases.noNotes")}</p>}
           <ul className="space-y-3">
             {c.notes?.map((n) => (
               <li key={n.id}>
@@ -115,7 +115,7 @@ function CaseDetail({ id }: { id: number }) {
           </ul>
           {canAct && (
             <div className="mt-4 flex items-end gap-2">
-              <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note" className="min-h-10" />
+              <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("cases.notePlaceholder")} className="min-h-10" />
               <Button
                 variant="outline"
                 disabled={!note.trim()}
@@ -124,7 +124,7 @@ function CaseDetail({ id }: { id: number }) {
                   setNote("");
                 }}
               >
-                Add note
+                {t("cases.addNote")}
               </Button>
             </div>
           )}
@@ -137,6 +137,8 @@ function CaseDetail({ id }: { id: number }) {
 function Cases() {
   const params = useSearchParams();
   const router = useRouter();
+  const t = useT();
+  const category = useCategory();
   const selected = params.get("id") ? Number(params.get("id")) : null;
   const [status, setStatus] = useState("active");
   const { data } = useSWR<Case[]>(`/cases?status=${status}`);
@@ -145,21 +147,21 @@ function Cases() {
       <div className="flex flex-col border-r border-border bg-card">
         <div className="p-3">
           <NativeSelect
-            aria-label="Status"
+            aria-label={t("inbox.filterStatus")}
             className="w-full"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             options={[
-              { value: "active", label: "Open and claimed" },
-              { value: "OPEN", label: "Unclaimed" },
-              { value: "CLAIMED", label: "Claimed" },
-              { value: "RESOLVED", label: "Resolved" },
-              { value: "all", label: "All cases" },
+              { value: "active", label: t("cases.filterActive") },
+              { value: "OPEN", label: t("cases.filterOpen") },
+              { value: "CLAIMED", label: t("cases.filterClaimed") },
+              { value: "RESOLVED", label: t("cases.filterResolved") },
+              { value: "all", label: t("cases.filterAll") },
             ]}
           />
         </div>
         <div className="flex-1 overflow-y-auto px-2 pb-2" data-testid="case-list">
-          {data?.length === 0 && <p className="p-3 text-sm text-muted-foreground">No cases.</p>}
+          {data?.length === 0 && <p className="p-3 text-sm text-muted-foreground">{t("cases.empty")}</p>}
           {data?.map((c) => (
             <button
               key={c.id}
@@ -172,12 +174,12 @@ function Cases() {
               <div className="flex items-center gap-2">
                 <SeverityDot severity={c.severity} />
                 <span className="flex-1 truncate text-sm font-medium">{c.contact_name}</span>
-                <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span>
+                <span className="text-xs text-muted-foreground">{timeAgo(c.created_at, t)}</span>
               </div>
               <div className="mt-0.5 truncate text-[13px] text-muted-foreground">{c.trigger_text}</div>
               <div className="mt-0.5 text-xs text-muted-foreground">
-                {[c.severity, c.category.toLowerCase().replace("_", " "), STATUS_LABEL[c.status].toLowerCase()]
-                  .filter((x, i, a) => a.indexOf(x) === i && x !== "other")
+                {[t(`sev.${c.severity}`), category(c.category, c.severity), t(`cases.status.${c.status}`)]
+                  .filter(Boolean)
                   .join(" · ")}
                 {c.assigned_name ? ` · ${c.assigned_name}` : ""}
               </div>
@@ -188,7 +190,7 @@ function Cases() {
       {selected ? (
         <CaseDetail key={selected} id={selected} />
       ) : (
-        <div className="flex items-center justify-center bg-card text-sm text-muted-foreground">Select a case</div>
+        <div className="flex items-center justify-center bg-card text-sm text-muted-foreground">{t("cases.select")}</div>
       )}
     </div>
   );

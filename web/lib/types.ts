@@ -49,7 +49,20 @@ export interface Conversation {
   flag_severity: Severity;
   flag_category: string | null;
   opted_out: boolean;
+  labels: LabelRef[];
   contact?: Contact;
+}
+
+export interface LabelRef {
+  id: number;
+  name: string;
+}
+
+export interface SavedReply {
+  id: number;
+  shortcut: string;
+  title: string;
+  body: string;
 }
 
 export interface Message {
