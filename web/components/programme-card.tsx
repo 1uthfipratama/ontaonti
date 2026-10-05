@@ -81,10 +81,10 @@ export function ProgrammeCard() {
   const pct = asked ? `${Math.round((data.adherence.taken / asked) * 100)}%` : "—";
   return (
     <Card data-testid="programme-card">
-      <CardHeader className="flex flex-row items-center gap-3">
+      <CardHeader className="flex flex-row flex-wrap items-center gap-x-3 gap-y-1">
         <CardTitle className="flex-1 text-sm">{t("dash.programme")}</CardTitle>
         {role !== "agent" && (
-          <div className="flex items-center gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
             <Download className="size-3.5 text-muted-foreground" />
             <span className="text-muted-foreground">{t("dash.export")}:</span>
             {(["patients", "doses", "screenings", "cases"] as const).map((k) => (

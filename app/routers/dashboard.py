@@ -2,6 +2,7 @@
 
 import statistics
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
@@ -36,6 +37,28 @@ async def _active_by_channel(session: AsyncSession, since) -> dict[str, int]:
     ).all()
     out = {ch: 0 for ch in CHANNELS}
     out.update({ch: n for ch, n in rows})
+    return out
+
+
+async def daily_conversations(session: AsyncSession, days: int = 14) -> list[dict]:
+    """Conversations with at least one inbound message, per local day, oldest first."""
+    tz = ZoneInfo(limits.settings.timezone)
+    today = limits.day_start_utc().astimezone(tz).date()
+    start = limits.day_start_utc() - timedelta(days=days - 1)
+    rows = (
+        await session.execute(
+            select(Message.conversation_id, Message.created_at).where(
+                Message.direction == DIR_IN, Message.created_at >= start
+            )
+        )
+    ).all()
+    seen: dict = {}
+    for conv_id, created in rows:
+        seen.setdefault(as_utc(created).astimezone(tz).date(), set()).add(conv_id)
+    out = []
+    for i in range(days):
+        day = today - timedelta(days=days - 1 - i)
+        out.append({"day": day.isoformat(), "count": len(seen.get(day, ()))})
     return out
 
 
@@ -146,6 +169,7 @@ async def dashboard(
         "conversations": {
             "today": await _active_by_channel(session, today),
             "month": await _active_by_channel(session, month),
+            "daily": await daily_conversations(session),
         },
         "open_cases": {s: cases.get(s, 0) for s in ("emergency", "high", "low")},
         "response_times": await first_response_times(session),

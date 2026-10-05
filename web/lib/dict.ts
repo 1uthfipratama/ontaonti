@@ -255,6 +255,11 @@ const id: Record<string, string> = {
 
   // dashboard
   "dash.convToday": "Percakapan hari ini",
+  "dash.overview": "Ringkasan",
+  "dash.firstResponse": "Respons pertama (median)",
+  "dash.openCases": "Kasus terbuka",
+  "dash.subscribedN": "{n} berlangganan",
+  "dash.last14": "Percakapan per hari, 14 hari terakhir",
   "dash.thisMonth": "{n} bulan ini",
   "dash.firstBot": "Respons pertama · bot",
   "dash.firstStaff": "Respons pertama · staf",
@@ -785,6 +790,11 @@ const en: Record<string, string> = {
   "sim.micDenied": "The microphone isn't available in this browser.",
 
   "dash.convToday": "Conversations today",
+  "dash.overview": "Overview",
+  "dash.firstResponse": "First response (median)",
+  "dash.openCases": "Open cases",
+  "dash.subscribedN": "{n} subscribed",
+  "dash.last14": "Conversations per day, last 14 days",
   "dash.thisMonth": "{n} this month",
   "dash.firstBot": "First response · bot",
   "dash.firstStaff": "First response · staff",

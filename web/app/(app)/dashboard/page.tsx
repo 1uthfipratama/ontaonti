@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import useSWR from "swr";
-import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { AlertOctagon, AlertTriangle, CheckCircle2 } from "lucide-react";
 
+import { OverviewStrip } from "@/components/overview-strip";
 import { ProgrammeCard } from "@/components/programme-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { idr } from "@/lib/format";
@@ -12,7 +12,11 @@ import { useT, type T } from "@/lib/i18n";
 
 type Dashboard = {
   timezone: string;
-  conversations: { today: Record<string, number>; month: Record<string, number> };
+  conversations: {
+    today: Record<string, number>;
+    month: Record<string, number>;
+    daily: { day: string; count: number }[];
+  };
   open_cases: { emergency: number; high: number; low: number };
   response_times: {
     bot_median_s: number | null;
@@ -38,29 +42,8 @@ type Dashboard = {
 
 const CHANNEL_LABEL: Record<string, string> = { whatsapp: "WhatsApp", messenger: "Messenger", instagram: "Instagram" };
 
-function duration(s: number | null): string {
-  if (s === null) return "—";
-  if (s < 90) return `${Math.round(s)} s`;
-  if (s < 5400) return `${(s / 60).toFixed(1)} min`;
-  return `${(s / 3600).toFixed(1)} h`;
-}
-
 function compact(n: number): string {
   return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
-}
-
-/** Stat tile: label, value, optional sub-line. */
-function Tile({ label, value, sub, icon, testId }: { label: string; value: string; sub?: string; icon?: React.ReactNode; testId?: string }) {
-  return (
-    <div className="h-full rounded-lg bg-[var(--viz-surface)] p-5" data-testid={testId}>
-      <div className="flex items-center gap-1.5 text-xs text-[var(--viz-ink-2)]">
-        {icon}
-        {label}
-      </div>
-      <div className="mt-2 text-2xl font-semibold text-[var(--viz-ink)]">{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-[var(--viz-muted)]">{sub}</div>}
-    </div>
-  );
 }
 
 type Level = "ok" | "warning" | "critical";
@@ -159,33 +142,27 @@ export default function DashboardPage() {
 
   const series = (k: "today" | "month") =>
     Object.entries(data.conversations[k]).map(([ch, n]) => ({ label: CHANNEL_LABEL[ch] ?? ch, value: n }));
-  const todayTotal = Object.values(data.conversations.today).reduce((a, b) => a + b, 0);
+  const sum = (r: Record<string, number>) => Object.values(r).reduce((a, b) => a + b, 0);
   const ai = data.ai;
   const aiLevel: Level = ai.over ? "critical" : ai.budget_idr > 0 && ai.ratio >= ai.alert_ratio ? "warning" : "ok";
   const wa = data.whatsapp;
   const waLevel: Level = wa.template_messages_month >= wa.free_tier ? "critical" : wa.template_messages_month >= wa.free_tier * 0.8 ? "warning" : "ok";
-  const cases = data.open_cases;
 
   return (
     <div className="viz-root h-full space-y-4 overflow-y-auto p-6">
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Key figures">
-        <Tile label={t("dash.convToday")} value={compact(todayTotal)} sub={t("dash.thisMonth", { n: compact(Object.values(data.conversations.month).reduce((a, b) => a + b, 0)) })} testId="tile-today" />
-        <Tile label={t("dash.firstBot")} value={duration(data.response_times.bot_median_s)} sub={t("dash.replies", { n: data.response_times.bot_samples })} />
-        <Tile label={t("dash.firstStaff")} value={duration(data.response_times.human_median_s)} sub={t("dash.replies", { n: data.response_times.human_samples })} />
-        <Tile label={t("dash.contacts")} value={compact(data.contacts.total)} sub={t("dash.contactsSub", { sub: data.contacts.subscribed, out: data.contacts.opted_out })} />
-      </section>
-
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Open cases by severity">
-        <Link href="/cases">
-          <Tile label={t("dash.caseEmergency")} value={String(cases.emergency)} icon={<AlertOctagon className="size-3.5 text-[var(--viz-critical)]" />} testId="tile-emergency" />
-        </Link>
-        <Link href="/cases">
-          <Tile label={t("dash.caseHigh")} value={String(cases.high)} icon={<AlertTriangle className="size-3.5 text-[var(--viz-serious)]" />} />
-        </Link>
-        <Link href="/cases">
-          <Tile label={t("dash.caseLow")} value={String(cases.low)} icon={<Info className="size-3.5 text-[var(--viz-warning)]" />} />
-        </Link>
-      </section>
+      <OverviewStrip
+        o={{
+          today: sum(data.conversations.today),
+          month: sum(data.conversations.month),
+          daily: data.conversations.daily,
+          botMedian: data.response_times.bot_median_s,
+          staffMedian: data.response_times.human_median_s,
+          botSamples: data.response_times.bot_samples,
+          staffSamples: data.response_times.human_samples,
+          contacts: data.contacts,
+          cases: data.open_cases,
+        }}
+      />
 
       <ProgrammeCard />
 

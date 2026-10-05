@@ -176,6 +176,8 @@ async def test_dashboard(admin):
     await simulate(admin, "saya pingsan", user_id="c", channel="messenger")
     d = (await admin.get("/dashboard")).json()
     assert d["conversations"]["today"] == {"whatsapp": 1, "messenger": 1, "instagram": 1}
+    daily = d["conversations"]["daily"]
+    assert len(daily) == 14 and daily[-1]["count"] == 3 and daily[0]["count"] == 0
     assert d["open_cases"]["emergency"] == 1
     assert d["response_times"]["bot_samples"] >= 3
     assert d["response_times"]["bot_median_s"] is not None
