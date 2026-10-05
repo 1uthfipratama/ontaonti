@@ -17,6 +17,12 @@ export function useStaff(): Staff {
   return s;
 }
 
+/** Re-read /auth/me (after turning 2FA on or off). */
+export function useStaffMutate() {
+  const { mutate } = useSWRConfig();
+  return () => mutate("/auth/me");
+}
+
 export function useCanAct(): boolean {
   const s = useStaff();
   return s.role === "admin" || s.role === "agent";
@@ -46,6 +52,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 // SSE event type -> SWR key prefixes to refetch.
 const REFRESH: Record<string, string[]> = {
   "message.created": ["/conversations", "/simulator", "/contacts"],
+  "message.updated": ["/conversations", "/simulator"],
+  "kb.status": ["/kb"],
+  "kb.gap": ["/kb"],
   "conversation.updated": ["/conversations", "/simulator", "/notifications"],
   "conversation.needs_human": ["/conversations", "/notifications"],
   "contact.created": ["/contacts"],

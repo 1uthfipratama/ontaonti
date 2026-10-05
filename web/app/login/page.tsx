@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api, errorMessage } from "@/lib/api";
+import { api, ApiError, errorMessage } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 
 export default function LoginPage() {
@@ -16,6 +16,8 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [needCode, setNeedCode] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -24,9 +26,14 @@ export default function LoginPage() {
     setBusy(true);
     setError("");
     try {
-      await api("/auth/login", { json: { email, password } });
+      await api("/auth/login", { json: { email, password, code: needCode ? code : undefined } });
       router.replace("/inbox");
     } catch (err) {
+      // Accounts with two-factor login: the password was right, now ask for the code.
+      if (err instanceof ApiError && err.message === "Two-factor code required") {
+        setNeedCode(true);
+        return;
+      }
       setError(errorMessage(err, t));
     } finally {
       setBusy(false);
@@ -72,6 +79,24 @@ export default function LoginPage() {
               required
             />
           </div>
+          {needCode && (
+            <div className="space-y-1.5">
+              <Label htmlFor="code" className="text-xs text-muted-foreground">{t("login.code")}</Label>
+              <Input
+                id="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                maxLength={7}
+                placeholder="123456"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/[^\d ]/g, ""))}
+                required
+                className="font-mono tracking-widest"
+              />
+              <p className="text-xs text-muted-foreground">{t("login.codeHint")}</p>
+            </div>
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={busy}>
             {busy ? t("login.submitting") : t("login.submit")}

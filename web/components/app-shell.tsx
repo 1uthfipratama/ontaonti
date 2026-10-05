@@ -145,13 +145,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="flex flex-col items-center gap-2.5 border-t border-sidebar-border px-2 py-3 lg:flex-row lg:px-4">
-          <div className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-            {initials(staff.name || staff.email)}
-          </div>
-          <div className="hidden min-w-0 flex-1 leading-tight lg:block">
-            <div className="truncate text-sm font-medium">{staff.name || staff.email}</div>
-            <div className="text-xs text-muted-foreground">{t(`role.${staff.role}`)}</div>
-          </div>
+          <Link
+            href="/account"
+            title={t("account.title")}
+            data-testid="account-link"
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md hover:opacity-80"
+          >
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+              {initials(staff.name || staff.email)}
+            </div>
+            <div className="hidden min-w-0 flex-1 leading-tight lg:block">
+              <div className="truncate text-sm font-medium">{staff.name || staff.email}</div>
+              <div className="text-xs text-muted-foreground">{t(`role.${staff.role}`)}</div>
+            </div>
+          </Link>
           <button
             onClick={logout}
             title={t("nav.signOut")}
@@ -166,7 +173,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-card px-6">
           <h1 className="text-base font-semibold" data-testid="page-title">
-            {current ? t(current.label) : ""}
+            {current ? t(current.label) : path.startsWith("/account") ? t("account.title") : ""}
           </h1>
           <div className="ml-auto flex items-center gap-1">
             <LangToggle className="mr-1" />

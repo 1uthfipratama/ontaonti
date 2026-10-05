@@ -34,6 +34,10 @@ class StaffUser(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Bumped on password change / deactivation: invalidates every existing session.
     session_epoch: Mapped[int] = mapped_column(Integer, default=0)
+    # Two-factor login (app/totp.py). The secret is set at setup, enabled once confirmed.
+    totp_secret: Mapped[str | None] = mapped_column(String(64))
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    totp_last_step: Mapped[int | None] = mapped_column(Integer)  # replay guard
     created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(TS)
 

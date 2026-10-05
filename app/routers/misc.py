@@ -94,6 +94,7 @@ class StaffPatch(BaseModel):
     role: str | None = Field(default=None, pattern="^(admin|agent|reviewer)$")
     is_active: bool | None = None
     password: str | None = Field(default=None, min_length=10, max_length=72)
+    reset_2fa: bool | None = None  # staff lost their phone: they log in with the password alone
 
 
 @router.patch("/staff/{staff_id}")
@@ -119,6 +120,10 @@ async def update_staff(
         target.password_hash = hash_password(body.password)
         target.session_epoch += 1
         changes["password"] = "changed"
+    if body.reset_2fa and target.totp_enabled:
+        target.totp_enabled, target.totp_secret, target.totp_last_step = False, None, None
+        target.session_epoch += 1
+        changes["2fa"] = "reset"
     audit(session, user, "staff.update", "staff", staff_id, changes, client_ip(request))
     await session.commit()
     return serializers.staff(target)

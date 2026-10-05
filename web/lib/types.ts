@@ -8,6 +8,7 @@ export interface Staff {
   name: string;
   role: Role;
   is_active: boolean;
+  totp_enabled: boolean;
 }
 
 export interface Identity {

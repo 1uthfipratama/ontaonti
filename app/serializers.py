@@ -19,7 +19,14 @@ def iso(dt) -> str | None:
 def staff(u: StaffUser | None) -> dict | None:
     if u is None:
         return None
-    return {"id": u.id, "email": u.email, "name": u.name, "role": u.role, "is_active": u.is_active}
+    return {
+        "id": u.id,
+        "email": u.email,
+        "name": u.name,
+        "role": u.role,
+        "is_active": u.is_active,
+        "totp_enabled": bool(u.totp_enabled),
+    }
 
 
 def identity(i: ContactIdentity) -> dict:

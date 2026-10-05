@@ -19,7 +19,7 @@ export function StaffManager() {
   const t = useT();
   const me = useStaff();
   const { mutate } = useSWRConfig();
-  const { data } = useSWR<(Staff & { totp_enabled?: boolean })[]>("/staff");
+  const { data } = useSWR<Staff[]>("/staff");
   const [form, setForm] = useState({ email: "", name: "", role: "agent", password: "" });
   const roleOptions = ROLES.map((r) => ({ value: r, label: t(`role.${r}`) }));
 
@@ -60,7 +60,20 @@ export function StaffManager() {
                   options={roleOptions}
                 />
               </TableCell>
-              <TableCell className="text-xs text-muted-foreground">{s.totp_enabled ? t("common.on") : t("common.off")}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">
+                {s.totp_enabled ? t("common.on") : t("common.off")}
+                {s.totp_enabled && s.id !== me.id && (
+                  <button
+                    className="ml-2 font-medium text-primary hover:underline"
+                    onClick={() =>
+                      confirm(t("staff.reset2faConfirm", { name: s.name || s.email })) &&
+                      run(() => api(`/staff/${s.id}`, { method: "PATCH", json: { reset_2fa: true } }), t("common.saved"))
+                    }
+                  >
+                    {t("staff.reset2fa")}
+                  </button>
+                )}
+              </TableCell>
               <TableCell>
                 {s.id === me.id ? (
                   <span className="text-xs text-muted-foreground">{t("common.you")}</span>
