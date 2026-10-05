@@ -311,6 +311,43 @@ class SavedReply(Base):
     updated_at: Mapped[datetime] = mapped_column(TS, default=utcnow, onupdate=utcnow)
 
 
+class KbArticle(Base):
+    """Knowledge-base article, edited on the Knowledge page. Published articles are
+    exported as Markdown and indexed for the bot (app/services/knowledge.py)."""
+
+    __tablename__ = "kb_articles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    doc_id: Mapped[str] = mapped_column(String(40), unique=True)  # cited as the source, e.g. "p05"
+    title: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str] = mapped_column(Text, default="")  # Markdown: intro, then "## " sections
+    published: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_by: Mapped[int | None] = mapped_column(
+        ForeignKey("staff_users.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(TS, default=utcnow, onupdate=utcnow)
+
+
+class KbGap(Base):
+    """A question the bot couldn't answer from the knowledge base."""
+
+    __tablename__ = "kb_gaps"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    question: Mapped[str] = mapped_column(Text)
+    conversation_id: Mapped[int | None] = mapped_column(
+        ForeignKey("conversations.id", ondelete="SET NULL"), index=True
+    )
+    message_id: Mapped[int | None] = mapped_column(ForeignKey("messages.id", ondelete="SET NULL"))
+    status: Mapped[str] = mapped_column(String(10), default="open")  # open | done | ignored
+    handled_by: Mapped[int | None] = mapped_column(
+        ForeignKey("staff_users.id", ondelete="SET NULL")
+    )
+    handled_at: Mapped[datetime | None] = mapped_column(TS)
+    created_at: Mapped[datetime] = mapped_column(TS, default=utcnow, index=True)
+
+
 class Label(Base):
     __tablename__ = "labels"
 

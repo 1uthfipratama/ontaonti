@@ -41,6 +41,7 @@ os.environ.update(
         "TEST_MODE": "true",
         "LOG_LEVEL": "WARNING",
         "MEDIA_DIR": str(_DB.parent / "media"),
+        "KB_LIVE_DIR": str(_DB.parent / "kb_live"),
         "TRANSCRIBE_PROVIDER": "fake",
     }
 )

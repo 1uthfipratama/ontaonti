@@ -185,7 +185,7 @@ async def _fake(model, system, messages, max_tokens, temperature, json_mode):
             first = re.split(r"(?<=[.!?])\s", " ".join(m.group(2).split()), maxsplit=1)[0]
             text = f"(Mode demo) Menurut materi kami: {first[:400]} [{m.group(1)}]"
         else:
-            text = "(Mode demo) Maaf, saya belum punya informasi tentang itu."
+            text = "(Mode demo) Maaf, saya belum punya informasi tentang itu. [NOINFO]"
     t_in = sum(len(str(x.get("content", ""))) for x in messages) // 4 + len(system or "") // 4
     return text, model, t_in, len(text) // 4, "end_turn"
 

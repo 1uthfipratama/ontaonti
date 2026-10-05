@@ -68,7 +68,8 @@ class Settings(BaseSettings):
     usd_to_idr: float = 16500.0
     llm_timeout_seconds: float = 45.0
 
-    kb_dir: Path = ROOT / "kb"
+    kb_dir: Path = ROOT / "kb"  # shipped articles, imported into the database once
+    kb_live_dir: Path = ROOT / "data" / "kb_live"  # published articles, exported for indexing
     flags_file: Path = ROOT / "config" / "flags.yaml"
 
     wa_access_token: str = ""

@@ -11,6 +11,7 @@ x-backend: &backend
     REDIS_URL: redis://redis:6379/0
     DATA_DIR: /app/data/kb
     MEDIA_DIR: /app/data/media
+    KB_LIVE_DIR: /app/data/kb_live
     WHISPER_DIR: /app/data/whisper
     # Shell overrides win, e.g. `LLM_PROVIDER=fake docker compose up` for an offline demo.
     LLM_PROVIDER: ${LLM_PROVIDER:-groq}

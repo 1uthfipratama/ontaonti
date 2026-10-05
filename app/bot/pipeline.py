@@ -29,6 +29,7 @@ from app.models import Conversation, Message
 from app.services import (
     cases,
     consent,
+    knowledge,
     limits,
     media,
     office_hours,
@@ -189,12 +190,14 @@ async def bot_answer(session, conv, msg, cfg: Config, lang: str, model: str) -> 
         await cases.open_case(session, conv, msg, "low", "BOT_ERROR", f"LLM error: {e}",
                               to_human=False)  # fmt: skip
         return
+    if ans.unanswered:
+        await knowledge.record_gap(session, conv, msg)
     await outbound.send_text(
         session,
         conv,
         ans.text,
         sender_type=SENDER_BOT,
-        meta={"sources": ans.sources, "model": ans.model},
+        meta={"sources": ans.sources, "model": ans.model, "unanswered": ans.unanswered},
         tokens_in=ans.tokens_in,
         tokens_out=ans.tokens_out,
         cost_idr=ans.cost_idr,

@@ -64,8 +64,15 @@ async def send_broadcast_recipient(ctx, recipient_id: int) -> None:
             # in-process (tests): retry straight away
 
 
+async def reindex_kb(ctx) -> None:
+    from app.services import knowledge
+
+    await knowledge.reindex()
+
+
 JOBS = {
     "handle_inbound": handle_inbound,
+    "reindex_kb": reindex_kb,
     "process_webhook": process_webhook,
     "send_broadcast_recipient": send_broadcast_recipient,
 }
@@ -88,7 +95,7 @@ class WorkerSettings:
     functions = list(JOBS.values())
     on_startup = startup
     max_jobs = settings.worker_max_jobs
-    job_timeout = 180
+    job_timeout = 600  # a knowledge-base re-index embeds every passage
     max_tries = 6  # arq-level retries (broadcast backoff); other jobs don't raise Retry
     keep_result = 3600  # arq keeps job ids this long: re-enqueues with the same id are dropped
     if settings.redis_url:

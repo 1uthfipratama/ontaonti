@@ -19,8 +19,23 @@ FRONT_MATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.S)
 KB_AUTHOR = "Onti-KB"  # a token no user types, so rag.retrieve.named_papers stays quiet
 
 
+def active_kb_dir() -> Path:
+    """Articles published from the Knowledge page win over the shipped kb/ files."""
+    live = env.kb_live_dir
+    return live if live.is_dir() and any(live.glob("*.md")) else env.kb_dir
+
+
 def kb_files(kb_dir: Path | None = None) -> list[Path]:
-    return sorted(p for p in (kb_dir or env.kb_dir).glob("*.md") if p.name.lower() != "readme.md")
+    return sorted(
+        p for p in (kb_dir or active_kb_dir()).glob("*.md") if p.name.lower() != "readme.md"
+    )
+
+
+def split_front_matter(raw: str) -> tuple[dict, str]:
+    m = FRONT_MATTER.match(raw)
+    if not m:
+        return {}, raw
+    return yaml.safe_load(m.group(1)) or {}, raw[m.end() :]
 
 
 def kb_sha(files: list[Path]) -> str:
@@ -97,7 +112,7 @@ def build_index(kb_dir: Path | None = None) -> dict:
 
     files = kb_files(kb_dir)
     if not files:
-        raise RuntimeError(f"no knowledge-base files in {kb_dir or env.kb_dir}")
+        raise RuntimeError(f"no knowledge-base files in {kb_dir or active_kb_dir()}")
     papers, chunks = [], []
     for f in files:
         paper, doc = parse_markdown(f)

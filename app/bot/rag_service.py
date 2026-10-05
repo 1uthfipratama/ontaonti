@@ -13,6 +13,7 @@ from dataclasses import dataclass
 log = logging.getLogger("onti.rag")
 _lock = threading.Lock()
 _db = None
+_db_mtime = 0.0
 
 
 @dataclass
@@ -25,13 +26,23 @@ class Snippet:
 
 
 def _connect():
-    global _db
-    if _db is None:
-        from rag import index
+    """Cached read-only connection, reopened when the index file is replaced
+    (a re-index from the Knowledge page runs in the worker, not in this process)."""
+    global _db, _db_mtime
+    from rag import index
+    from rag.config import settings as rag_settings
 
+    try:
+        mtime = rag_settings.index_path.stat().st_mtime
+    except OSError:
+        mtime = 0.0
+    if _db is not None and mtime != _db_mtime:
+        log.info("knowledge-base index changed; reconnecting")
+        reset()
+    if _db is None:
         db = index.connect(readonly=True)
         index.check_meta(db)
-        _db = db
+        _db, _db_mtime = db, mtime
     return _db
 
 

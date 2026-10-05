@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
   BarChart3,
+  BookOpen,
   FlaskConical,
   Inbox,
   LifeBuoy,
@@ -56,7 +57,10 @@ export const NAV: { group: string; items: NavItem[] }[] = [
   },
   {
     group: "nav.admin",
-    items: [{ href: "/settings", label: "nav.settings", icon: Settings, adminOnly: true }],
+    items: [
+      { href: "/knowledge", label: "nav.knowledge", icon: BookOpen },
+      { href: "/settings", label: "nav.settings", icon: Settings, adminOnly: true },
+    ],
   },
 ];
 
