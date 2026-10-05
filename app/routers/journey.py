@@ -12,7 +12,7 @@ from app import events, serializers
 from app.audit import audit
 from app.db import get_session
 from app.deps import any_staff, can_act, client_ip
-from app.models import Contact, DoseLog, StaffUser, Task
+from app.models import Contact, DoseLog, ScreeningSession, StaffUser, Task
 from app.services.reminders import local_today
 
 router = APIRouter(tags=["journey"])
@@ -137,6 +137,30 @@ async def update_journey(
     await session.commit()
     await events.publish("contact.updated", contact_id=contact_id)
     return serializers.contact(c)
+
+
+@router.get("/contacts/{contact_id}/screening")
+async def latest_screening(
+    contact_id: int,
+    user: StaffUser = Depends(any_staff),
+    session: AsyncSession = Depends(get_session),
+):
+    """The contact's most recent finished screening, or null."""
+    sc = (
+        await session.execute(
+            select(ScreeningSession)
+            .where(ScreeningSession.contact_id == contact_id, ScreeningSession.status == "done")
+            .order_by(ScreeningSession.id.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if sc is None:
+        return None
+    return {
+        "result": sc.result,
+        "answers": sc.answers,
+        "finished_at": serializers.iso(sc.finished_at),
+    }
 
 
 @router.get("/contacts/{contact_id}/doses")

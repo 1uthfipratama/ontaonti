@@ -27,6 +27,7 @@ const SAMPLES: { key: string; text: string; kind?: string }[] = [
   { key: "emergency", text: "Saya batuk darah banyak dan sesak napas berat" },
   { key: "selfharm", text: "Aku capek berobat terus, rasanya ingin mati saja" },
   { key: "adherence", text: "Obat saya habis dan saya mau berhenti pengobatan" },
+  { key: "screening", text: "SKRINING" },
   { key: "subscribe", text: "LANGGANAN" },
   { key: "stop", text: "STOP" },
   { key: "start", text: "MULAI" },

@@ -347,6 +347,27 @@ class DoseLog(Base):
     followup_sent: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class ScreeningSession(Base):
+    """TB symptom screening over chat (app/services/screening.py)."""
+
+    __tablename__ = "screenings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    contact_id: Mapped[int] = mapped_column(
+        ForeignKey("contacts.id", ondelete="CASCADE"), index=True
+    )
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE"), index=True
+    )
+    lang: Mapped[str] = mapped_column(String(2), default="id")
+    step: Mapped[int] = mapped_column(Integer, default=0)
+    answers: Mapped[dict] = mapped_column(JSON, default=dict)  # question id -> yes (true) / no
+    status: Mapped[str] = mapped_column(String(10), default="active")  # active | done | abandoned
+    result: Mapped[str | None] = mapped_column(String(12))  # presumptive | negative
+    started_at: Mapped[datetime] = mapped_column(TS, default=utcnow, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(TS)
+
+
 class Task(Base):
     """Follow-up work for staff and kader: a call, a home visit, anything else."""
 

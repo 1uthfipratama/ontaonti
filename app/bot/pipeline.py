@@ -35,6 +35,7 @@ from app.services import (
     office_hours,
     outbound,
     reminders,
+    screening,
     settings_service,
 )
 from app.services.settings_service import Config
@@ -102,6 +103,16 @@ async def _handle(session, conv: Conversation, msg: Message) -> None:
         await session.commit()
         await outbound.send_text(session, conv, cfg.text("consent_notice", lang),
                                  sender_type=SENDER_BOT, meta={"consent": "notice"})  # fmt: skip
+
+    # TB symptom screening ("SKRINING", then Ya / Tidak); the bot's own flow, so not
+    # while staff have the chat or a safety keyword fired
+    if (
+        is_text
+        and conv.mode != MODE_HUMAN
+        and not at_least(kw.severity, "high")
+        and await screening.maybe_handle(session, conv, msg, lang)
+    ):
+        return
 
     # a tap on "Sudah" / "Belum" under today's medication reminder
     if is_text and await reminders.handle_answer(session, conv, msg, cfg, lang):

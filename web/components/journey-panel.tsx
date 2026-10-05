@@ -9,6 +9,7 @@ import { NativeSelect } from "@/components/native-select";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { api, errorMessage } from "@/lib/api";
+import { day } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useCanAct } from "@/lib/session";
 import type { Contact, DoseDay, Stage, Staff, Task } from "@/lib/types";
@@ -75,6 +76,20 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+function LatestScreening({ contactId }: { contactId: number }) {
+  const t = useT();
+  const { data } = useSWR<{ result: string; finished_at: string } | null>(`/contacts/${contactId}/screening`);
+  if (!data) return null;
+  return (
+    <Row label={t("journey.screening")}>
+      <span className={cn("text-sm", data.result === "presumptive" && "font-medium text-destructive")} data-testid="screening-result">
+        {data.result === "presumptive" ? t("journey.screenPositive") : t("journey.screenNegative")}
+        <span className="font-normal text-muted-foreground"> · {day(data.finished_at)}</span>
+      </span>
+    </Row>
+  );
+}
+
 /** Treatment details, reminder and open tasks, for the contact side panels. */
 export function JourneyPanel({ contact: c }: { contact: Contact }) {
   const t = useT();
@@ -120,6 +135,7 @@ export function JourneyPanel({ contact: c }: { contact: Contact }) {
           options={[{ value: "", label: t("stage.none") }, ...STAGES.map((s) => ({ value: s, label: t(`stage.${s}`) }))]}
         />
       </Row>
+      <LatestScreening contactId={c.id} />
       {c.journey_stage && (
         <>
           {onTreatment && (

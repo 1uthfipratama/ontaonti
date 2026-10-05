@@ -1,0 +1,57 @@
+# TB symptom screening over chat. Someone types a start keyword, the bot asks the
+# questions below one by one with Ya / Tidak buttons, then gives the result.
+# This is symptom screening, not diagnosis: a "suggest testing" result tells the
+# person to get checked at the puskesmas, marks them "Presumptive" on the
+# Patients board and creates a follow-up task for staff.
+#
+# Edit the wording freely; keep the ids (they are stored with each answer).
+# Restart the api and worker after editing.
+
+start_keywords: [skrining, screening, cek tbc, tes tbc, skrining tbc]
+
+intro_id: >-
+  Baik, kita mulai *skrining gejala TBC* ya. Ada {n} pertanyaan singkat, jawab *Ya* atau
+  *Tidak*. Ini bukan diagnosis, hanya membantu menentukan perlu periksa atau tidak.
+intro_en: >-
+  Okay, let's start a quick *TB symptom check*. There are {n} short questions, answer
+  *Yes* or *No*. This is not a diagnosis; it helps decide whether you should get tested.
+
+questions:
+  - id: cough_2w
+    major: true  # a "yes" here alone means: get tested
+    text_id: Apakah Kakak batuk selama 2 minggu atau lebih?
+    text_en: Have you been coughing for 2 weeks or more?
+  - id: fever
+    text_id: Apakah Kakak sering demam, terutama sore atau malam hari?
+    text_en: Do you often have a fever, especially in the afternoon or at night?
+  - id: night_sweats
+    text_id: Apakah Kakak sering berkeringat di malam hari walau tidak beraktivitas?
+    text_en: Do you often sweat at night without doing any activity?
+  - id: weight_loss
+    text_id: Apakah berat badan Kakak turun tanpa sebab, atau nafsu makan berkurang?
+    text_en: Have you lost weight for no reason, or lost your appetite?
+  - id: contact
+    contact: true  # close contact: any other symptom is enough
+    text_id: Apakah ada orang serumah atau dekat dengan Kakak yang sedang atau pernah sakit TBC?
+    text_en: Does someone you live with or are close to have, or have had, TB?
+
+# Suggest testing when: any "major" question is yes, OR at least `min_symptoms`
+# symptom questions are yes, OR the contact question is yes with at least one symptom.
+min_symptoms: 2
+
+result_positive_id: >-
+  Terima kasih sudah menjawab 🙏 Dari jawaban Kakak, Kakak *disarankan periksa TBC* di
+  puskesmas terdekat. Pemeriksaan dan pengobatan TBC *gratis*. Ini bukan diagnosis; hanya
+  petugas kesehatan yang bisa memastikan. Staf kami juga akan menghubungi Kakak.
+result_positive_en: >-
+  Thank you for answering 🙏 Based on your answers, you *should get tested for TB* at the
+  nearest puskesmas. TB testing and treatment are *free*. This is not a diagnosis; only a
+  health worker can confirm. Our staff will also contact you.
+result_negative_id: >-
+  Terima kasih sudah menjawab 🙏 Saat ini jawaban Kakak *tidak menunjukkan gejala utama
+  TBC*. Tetap jaga kesehatan ya. Jika nanti batuk 2 minggu atau lebih, demam, berkeringat
+  malam, atau berat badan turun, segera periksa ke puskesmas.
+result_negative_en: >-
+  Thank you for answering 🙏 Right now your answers *don't show the main TB symptoms*. Stay
+  healthy. If you later cough for 2 weeks or more, have fevers, night sweats or weight
+  loss, please get checked at the puskesmas.
