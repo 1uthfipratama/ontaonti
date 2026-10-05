@@ -57,7 +57,7 @@ async def email_staff(subject: str, body: str) -> None:
 def case_email(
     case_id: int, severity: str, category: str, contact: str, channel: str, text: str
 ) -> tuple[str, str]:
-    subject = f"[Onti Erlani] {severity.upper()} case #{case_id}: {category}"
+    subject = f"[Onti Erlina] {severity.upper()} case #{case_id}: {category}"
     body = (
         f"A {severity} {category} flag needs a staff member.\n\n"
         f"Contact: {contact} ({channel})\n"

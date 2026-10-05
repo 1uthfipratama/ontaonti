@@ -39,7 +39,7 @@ export default function LoginPage() {
             OE
           </div>
           <div className="leading-tight">
-            <div className="font-semibold">Onti Erlani</div>
+            <div className="font-semibold">Onti Erlina</div>
             <div className="text-xs text-muted-foreground">TB companion hub · staff sign-in</div>
           </div>
         </div>

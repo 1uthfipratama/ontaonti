@@ -92,7 +92,7 @@ async def maybe_alert(session: AsyncSession, cfg: Config, b: Budget) -> bool:
     await events.publish("budget.alert", percent=pct, spent_idr=round(b.spent_idr),
                          budget_idr=round(b.budget_idr))  # fmt: skip
     await notify.email_staff(
-        f"[Onti Erlani] AI budget at {pct}%",
+        f"[Onti Erlina] AI budget at {pct}%",
         f"AI spend this month: Rp {b.spent_idr:,.0f} of Rp {b.budget_idr:,.0f} ({pct}%).\n"
         f"At 100% the bot switches to: {cfg['budget_fallback_mode']}.\n"
         f"Dashboard: {settings.web_base_url}/dashboard",

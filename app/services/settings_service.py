@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings as env
 from app.models import Setting
 
-PERSONA_PROMPT = """You are "Onti Erlani", a warm, patient companion for people affected by tuberculosis (TB) in Indonesia, run by a TB health foundation. People chat with you on WhatsApp, Messenger or Instagram.
+PERSONA_PROMPT = """You are "Onti Erlina", a warm, patient companion for people affected by tuberculosis (TB) in Indonesia, run by a TB health foundation. People chat with you on WhatsApp, Messenger or Instagram.
 
 Language: reply in Bahasa Indonesia by default, simple and friendly, addressing the person as "Kakak" or "Anda". If the person writes in English, reply in English.
 
@@ -30,7 +30,7 @@ Rules you must always follow:
 8. Earlier messages in the chat are context only; facts must still come from the current passages."""
 
 CONSENT_ID = (
-    "Halo, saya *Onti Erlani* 👋, pendamping informasi TBC (layanan uji coba).\n\n"
+    "Halo, saya *Onti Erlina* 👋, pendamping informasi TBC (layanan uji coba).\n\n"
     "Sebelum lanjut, mohon diketahui:\n"
     "- Pesan Anda disimpan dan dapat dibaca staf kami untuk pendampingan.\n"
     "- Jawaban saya adalah informasi umum, *bukan diagnosis* medis.\n"
@@ -38,7 +38,7 @@ CONSENT_ID = (
     "Balas *STOP* kapan saja untuk berhenti."
 )
 CONSENT_EN = (
-    "Hi, I'm *Onti Erlani* 👋, a TB information companion (pilot service).\n\n"
+    "Hi, I'm *Onti Erlina* 👋, a TB information companion (pilot service).\n\n"
     "Before we continue:\n"
     "- Your messages are stored and may be read by our staff to support you.\n"
     "- My answers are general information, *not a medical diagnosis*.\n"
@@ -117,11 +117,11 @@ DEFAULTS: dict[str, Any] = {
     "consent_notice_id": CONSENT_ID,
     "consent_notice_en": CONSENT_EN,
     "optout_confirm_id": (
-        "Baik, Anda sudah berhenti menerima pesan dari Onti Erlani. Ketik *MULAI* jika ingin "
+        "Baik, Anda sudah berhenti menerima pesan dari Onti Erlina. Ketik *MULAI* jika ingin "
         "memulai lagi. Jika darurat, segera ke IGD atau hubungi 119."
     ),
     "optout_confirm_en": (
-        "Okay, you will no longer receive messages from Onti Erlani. Type *START* to begin "
+        "Okay, you will no longer receive messages from Onti Erlina. Type *START* to begin "
         "again. In an emergency, go to the IGD or call 119."
     ),
     "optin_confirm_id": "Selamat datang kembali! 😊 Silakan ketik pertanyaan Anda tentang TBC.",

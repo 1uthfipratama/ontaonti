@@ -242,7 +242,7 @@ async def main() -> None:
         if not (
             await s.execute(select(WaTemplate).where(WaTemplate.name == "pengingat_kontrol"))
         ).first():
-            body = ("Halo {{1}}, ini pengingat dari Onti Erlani: jadwal kontrol TBC Anda {{2}}. "
+            body = ("Halo {{1}}, ini pengingat dari Onti Erlina: jadwal kontrol TBC Anda {{2}}. "
                     "Balas STOP untuk berhenti menerima pesan.")  # fmt: skip
             s.add(WaTemplate(name="pengingat_kontrol", language="id", category="UTILITY",
                              status="MANUAL", source="manual", body_text=body, variable_count=2,

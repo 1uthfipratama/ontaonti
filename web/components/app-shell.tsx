@@ -95,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             OE
           </div>
           <div className="hidden leading-tight lg:block">
-            <div className="text-sm font-semibold">Onti Erlani</div>
+            <div className="text-sm font-semibold">Onti Erlina</div>
             <div className="text-[11px] text-muted-foreground">TB companion hub</div>
           </div>
         </div>

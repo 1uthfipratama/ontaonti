@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ROOT / ".env", extra="ignore")
 
     # Paths. DATA_DIR is overridable (the hub's containers use /app/data/kb).
-    # Onti Erlani Hub: the knowledge-base index and its generated manifest live here.
+    # Onti Erlina Hub: the knowledge-base index and its generated manifest live here.
     data_dir: Path = ROOT / "data" / "kb"
     # Point tests/chunking at another backend's output, e.g. data/parsed_alt/mineru
     parsed_dir_override: Path | None = None
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     parse_backend: str = "mineru"
 
     # Models
-    # Onti Erlani Hub: users write Bahasa Indonesia, so the default embedder is
+    # Onti Erlina Hub: users write Bahasa Indonesia, so the default embedder is
     # multilingual (registered as a custom fastembed model in rag/embed.py).
     # Set EMBED_MODEL=BAAI/bge-small-en-v1.5 plus QUERY_INSTRUCTION="Represent this
     # sentence for searching relevant passages: " and PASSAGE_PREFIX="" for the old
@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
 
     # Retrieval: fuse 30 BM25 + 30 dense candidates, return top_k.
-    # Onti Erlani Hub: a fixed k=4 bounds the prompt (and cost) of every answer.
+    # Onti Erlina Hub: a fixed k=4 bounds the prompt (and cost) of every answer.
     top_k: int = 4
     bm25_k: int = 30
     dense_k: int = 30

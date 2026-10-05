@@ -1,6 +1,6 @@
 """Embedding via fastembed (ONNX on CPU, no PyTorch).
 
-Onti Erlani Hub changes (vendored from thesis-rag):
+Onti Erlina Hub changes (vendored from thesis-rag):
 - the model is configurable (EMBED_MODEL) and defaults to the multilingual
   intfloat/multilingual-e5-small, which fastembed doesn't ship: it is registered
   below as a custom model from the official ONNX export on Hugging Face;

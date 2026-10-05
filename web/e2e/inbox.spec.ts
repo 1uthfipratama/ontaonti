@@ -30,7 +30,7 @@ test("simulator message gets a bot reply and shows up in the inbox", async ({ pa
   // First contact: the consent notice, then the answer (or the fixed fallback
   // reply when no LLM is reachable). Both are bot messages, delivered live (SSE).
   await expect(page.getByTestId("sim-reply-bot")).toHaveCount(2);
-  await expect(page.getByTestId("sim-reply-bot").first()).toContainText("Onti Erlani");
+  await expect(page.getByTestId("sim-reply-bot").first()).toContainText("Onti Erlina");
 
   await page.getByRole("link", { name: "Open in inbox →" }).click();
   await expect(page.getByTestId("thread-title")).toContainText(user);

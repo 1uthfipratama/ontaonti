@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Onti Erlani Hub", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Onti Erlina Hub", version="0.1.0", lifespan=lifespan)
 
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 

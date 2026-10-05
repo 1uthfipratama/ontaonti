@@ -1,4 +1,4 @@
-# What Onti Erlani Hub does today
+# What Onti Erlina Hub does today
 
 A complete inventory of the prototype as of 2026-10-05: **what's built and tested**.
 What's missing compared with Mekari Qontak is in [ROADMAP.md](ROADMAP.md).
@@ -23,7 +23,7 @@ What's missing compared with Mekari Qontak is in [ROADMAP.md](ROADMAP.md).
 - **AI summary** for a staff member taking over (never sent to the patient).
 - Per message: sources used by the bot, tokens and cost in Rupiah, delivery status, failure reason.
 
-## 3. The bot (Onti Erlani)
+## 3. The bot (Onti Erlina)
 
 - Answers **only from the TB knowledge base** (`kb/`, 10 draft articles) using the reused thesis-rag retrieval: keyword + semantic search with a multilingual model, so Indonesian and English questions both work.
 - Persona: warm TB companion, Bahasa Indonesia by default (English if the user writes English), never diagnoses, never gives or changes medication, points to the puskesmas, says so when the material doesn't cover a question.

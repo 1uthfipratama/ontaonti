@@ -132,7 +132,7 @@ def build(chunks: list[Chunk], papers: list[Paper], out: Path | None = None) -> 
 
 def check_meta(db: sqlite3.Connection) -> dict:
     """Refuse to serve an index built with a different embedder (silent drift).
-    Onti Erlani Hub: the query/passage prefixes are part of the embedder setup too."""
+    Onti Erlina Hub: the query/passage prefixes are part of the embedder setup too."""
     meta = dict(db.execute("SELECT key, value FROM meta").fetchall())
     expected = {
         "embed_model": settings.embed_model,

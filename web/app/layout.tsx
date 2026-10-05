@@ -18,7 +18,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Onti Erlani Hub",
+  title: "Onti Erlina Hub",
   description: "Omnichannel inbox and TB companion chatbot",
 };
 

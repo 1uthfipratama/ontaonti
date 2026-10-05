@@ -10,7 +10,7 @@ from functools import lru_cache
 
 from tokenizers import Tokenizer
 
-# Model max sequence length, including [CLS] and [SEP]. Onti Erlani Hub: 8 tokens
+# Model max sequence length, including [CLS] and [SEP]. Onti Erlina Hub: 8 tokens
 # are held back for the passage prefix ("passage: ") that rag/embed.py prepends.
 EMBED_MAX_TOKENS = 512 - 8
 SPECIAL_TOKENS = 2

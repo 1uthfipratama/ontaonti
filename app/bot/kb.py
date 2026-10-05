@@ -48,7 +48,7 @@ def parse_markdown(path: Path):
         title=meta["title"],
         authors=[KB_AUTHOR],
         year=int(meta.get("year", 2026)),
-        venue="Onti Erlani knowledge base",
+        venue="Onti Erlina knowledge base",
         short_cite=meta.get("short_cite", meta["title"]),
         layout="one_column",
         open_access=True,

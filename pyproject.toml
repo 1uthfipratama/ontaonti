@@ -1,5 +1,5 @@
 [project]
-name = "onti-erlani-hub"
+name = "onti-erlina-hub"
 version = "0.1.0"
 description = "Omnichannel inbox + TB companion chatbot + admin dashboard (feasibility prototype)."
 requires-python = ">=3.12"

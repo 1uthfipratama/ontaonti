@@ -20,7 +20,7 @@ STOPWORDS = frozenset(
     """a an and are as at be by did do does for from how in is it of on or that the
     their them these this those to was were what when where which who why with
     paper papers study studies corpus""".split()
-    # Onti Erlani Hub: Indonesian function words (users write Bahasa Indonesia).
+    # Onti Erlina Hub: Indonesian function words (users write Bahasa Indonesia).
     + """yang dan di ke dari ini itu apa apakah bagaimana gimana kenapa mengapa saya aku
     kamu anda kak kakak untuk dengan pada ada adalah tidak nggak gak bisa kalau jika atau
     juga sudah udah belum akan sedang lagi saja aja dong ya kah sih nya mau ingin harus""".split()

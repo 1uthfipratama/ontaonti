@@ -1,7 +1,7 @@
-# Onti Erlani Hub
+# Onti Erlina Hub
 
 Feasibility prototype of an omnichannel inbox, a TB companion chatbot ("Onti
-Erlani") and an admin dashboard for a TB health foundation, as a possible
+Erlina") and an admin dashboard for a TB health foundation, as a possible
 replacement for Mekari Qontak. **Prototype — test data only.**
 
 - **Channels**: WhatsApp Cloud API, Messenger, Instagram (feature-flagged) and a

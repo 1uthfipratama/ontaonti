@@ -124,7 +124,7 @@ export default function SimulatorPage() {
           <div className="flex items-center gap-3 border-b border-border px-4 py-3">
             <div className="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">OE</div>
             <div className="flex-1 leading-tight">
-              <div className="text-sm font-semibold">Onti Erlani</div>
+              <div className="text-sm font-semibold">Onti Erlina</div>
               <div className="text-xs text-muted-foreground">
                 {channelName(channel)} · simulated{conv?.mode === "HUMAN" ? " · staff handling" : ""}
               </div>
