@@ -7,7 +7,8 @@ x-backend: &backend
     - path: .env
       required: false
   environment:
-    DATABASE_URL: postgresql+asyncpg://onti:${POSTGRES_PASSWORD:-onti_dev_only}@db:5432/onti
+    # ONTI_DB picks the database: "onti" (default) or e.g. "onti_showcase" (scripts/showcase.ps1).
+    DATABASE_URL: postgresql+asyncpg://onti:${POSTGRES_PASSWORD:-onti_dev_only}@db:5432/${ONTI_DB:-onti}
     REDIS_URL: redis://redis:6379/0
     DATA_DIR: /app/data/kb
     MEDIA_DIR: /app/data/media
@@ -100,6 +101,7 @@ services:
     entrypoint: ["sh", "/backup.sh"]
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD:-onti_dev_only}
+      PGDATABASE: ${ONTI_DB:-onti}
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
       BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
     volumes:

@@ -152,6 +152,68 @@
   html {
     @apply font-sans;
   }
+  /* Dropdowns: the option list uses the app's font and colours, not the system's. */
+  select,
+  option {
+    font-family: inherit;
+  }
+  option {
+    background: var(--popover);
+    color: var(--popover-foreground);
+  }
+}
+
+/* Where the browser supports it (Chrome/Edge 135+), the whole open list is themed:
+   rounded panel, padding, hover and selected states, light and dark. */
+@supports (appearance: base-select) {
+  select,
+  ::picker(select) {
+    appearance: base-select;
+  }
+  select {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  select::picker-icon {
+    content: "";
+    width: 14px;
+    height: 14px;
+    background: var(--muted-foreground);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: rotate 0.15s;
+  }
+  select:open::picker-icon {
+    rotate: 180deg;
+  }
+  ::picker(select) {
+    margin-block: 4px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--popover);
+    color: var(--popover-foreground);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.12);
+  }
+  option {
+    padding: 6px 10px;
+    border-radius: calc(var(--radius) * 0.6);
+    font-size: 0.875rem;
+  }
+  option::checkmark {
+    display: none;
+  }
+  option:hover,
+  option:focus-visible {
+    background: var(--muted);
+    outline: none;
+  }
+  option:checked {
+    background: var(--accent);
+    color: var(--accent-foreground);
+    font-weight: 500;
+  }
 }
 /* Data-viz roles (dashboard): one indigo ramp for magnitude; status colours are
    fixed and always paired with an icon + label. */

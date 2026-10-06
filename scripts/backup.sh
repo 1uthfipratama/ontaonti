@@ -9,7 +9,8 @@ INTERVAL_HOURS="${BACKUP_INTERVAL_HOURS:-24}"
 
 backup() {
   stamp=$(date -u +%Y%m%d-%H%M)
-  pg_dump -h db -U onti -d onti -Fc -f "/backups/db-$stamp.dump.part"
+  db="${PGDATABASE:-onti}"
+  pg_dump -h db -U onti -d "$db" -Fc -f "/backups/db-$stamp.dump.part"
   mv "/backups/db-$stamp.dump.part" "/backups/db-$stamp.dump"
   if [ -d /data/media ]; then
     tar -czf "/backups/media-$stamp.tar.gz" -C /data media

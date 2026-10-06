@@ -79,7 +79,7 @@ export default function PatientsPage() {
   return (
     <div className="flex h-full flex-col">
       {data.contacts.length === 0 && <p className="px-6 pt-5 text-sm text-muted-foreground">{t("board.empty")}</p>}
-      <div className="grid min-h-0 flex-1 auto-cols-[minmax(15rem,1fr)] grid-flow-col gap-3 overflow-x-auto p-4">
+      <div className="grid min-h-0 flex-1 auto-cols-[minmax(12.5rem,1fr)] grid-flow-col gap-3 overflow-x-auto p-4">
         {STAGES.map((stage) => {
           const cards = data.contacts.filter((c) => c.journey_stage === stage);
           return (

@@ -1,5 +1,7 @@
 """Demo data: staff, contacts and conversations across channels, cases, consents,
-and a broadcast template. Idempotent (skips if the demo contacts exist).
+a broadcast template, and the TB programme (patient stages, two weeks of medication
+reminders, a screening, tasks, saved replies, labels, unanswered questions).
+Idempotent (skips if the demo contacts exist).
 
     docker compose exec api python scripts/seed_demo.py
     python scripts/seed_demo.py            # outside Docker, with DATABASE_URL set
@@ -12,7 +14,7 @@ from .env (skipped when it is empty). Test data only.
 import asyncio
 import os
 import sys
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -36,11 +38,21 @@ from app.models import (  # noqa: E402
     Contact,
     ContactIdentity,
     Conversation,
+    ConversationLabel,
+    DoseLog,
+    KbGap,
+    Label,
     Message,
+    SavedReply,
+    ScreeningSession,
+    Setting,
     StaffUser,
+    Task,
     WaTemplate,
 )
 from app.security import hash_password  # noqa: E402
+from app.services import screening  # noqa: E402
+from app.services.reminders import BUTTONS, _tz, local_today  # noqa: E402
 from app.services.settings_service import DEFAULTS  # noqa: E402
 
 MARKER = "sim-demo-siti"
@@ -166,7 +178,7 @@ async def main() -> None:
         ], ago_hours=6)  # fmt: skip
 
         # 3. Messenger, low-severity side-effect question answered by the bot
-        await thread(s, "Budi Santoso", "messenger", "sim-demo-budi", [
+        budi, _, _ = await thread(s, "Budi Santoso", "messenger", "sim-demo-budi", [
             (DIR_IN, "user", "Kenapa air kencing saya jadi oranye setelah minum obat?", "low", "OTHER"),
             (DIR_OUT, "bot", notice),
             (DIR_OUT, "bot", ANSWER_URINE),
@@ -180,11 +192,11 @@ async def main() -> None:
         ], ago_hours=3)  # fmt: skip
 
         # 5. Emergency: fixed safety reply, case open, conversation handed to staff
-        _, andi_conv, andi = await thread(s, "Andi P.", "whatsapp", "sim-demo-andi", [
+        andi_contact, andi_conv, andi = await thread(s, "Andi P.", "whatsapp", "sim-demo-andi", [
             (DIR_IN, "user", "tolong saya batuk darah banyak sejak tadi pagi", "emergency", "EMERGENCY"),
             (DIR_OUT, "bot", notice),
             (DIR_OUT, "bot", DEFAULTS["safety_emergency_id"]),
-            (DIR_NOTE, "system", "Mode → HUMAN (otomatis: EMERGENCY emergency)"),
+            (DIR_NOTE, "system", "Bot berhenti otomatis: darurat. Staf menangani."),
         ], ago_hours=0.5)  # fmt: skip
         andi_conv.mode, andi_conv.flag_severity, andi_conv.flag_category = (
             MODE_HUMAN,
@@ -201,12 +213,12 @@ async def main() -> None:
             (DIR_IN, "user", "Kak obat saya habis dan saya capek, mau berhenti pengobatan aja", "high", "ADHERENCE"),
             (DIR_OUT, "bot", notice),
             (DIR_OUT, "bot", DEFAULTS["safety_adherence_id"]),
-            (DIR_NOTE, "system", "Mode → HUMAN (otomatis: ADHERENCE high)"),
+            (DIR_NOTE, "system", "Bot berhenti otomatis: pengobatan terhenti. Staf menangani."),
         ]  # fmt: skip
         if agent:
             turns.append((DIR_OUT, "agent", "Halo Bu Dewi, saya Agen dari yayasan. Boleh saya bantu "
                                             "jadwalkan ambil obat ke puskesmas besok pagi?"))  # fmt: skip
-        _, dewi_conv, dewi = await thread(
+        dewi_contact, dewi_conv, dewi = await thread(
             s, "Dewi Lestari", "whatsapp", "sim-demo-dewi", turns, ago_hours=26
         )
         dewi_conv.mode, dewi_conv.flag_severity, dewi_conv.flag_category = (
@@ -247,8 +259,160 @@ async def main() -> None:
             s.add(WaTemplate(name="pengingat_kontrol", language="id", category="UTILITY",
                              status="MANUAL", source="manual", body_text=body, variable_count=2,
                              components=[{"type": "BODY", "text": body}]))  # fmt: skip
+        await programme(s, agent, siti, budi, dewi_contact, dewi_conv, andi_contact, andi_conv)
         await s.commit()
-    print("demo data created: 7 contacts, 7 conversations, 2 cases, 1 template")
+    print("demo data created: 10 contacts, 8 conversations, 2 cases, 1 template, TB programme")
+
+
+def local_at(day, hh: int, mm: int = 0) -> datetime:
+    return datetime.combine(day, time(hh, mm), tzinfo=_tz())
+
+
+async def add_turns(s, conv: Conversation, start: datetime, turns: list[tuple]) -> list[Message]:
+    """Append (direction, sender, text, meta) turns a minute apart."""
+    out = []
+    for i, (direction, sender, text, meta) in enumerate(turns):
+        t = start + timedelta(minutes=i)
+        m = Message(conversation_id=conv.id, direction=direction, sender_type=sender, text=text,
+                    status="received" if direction == DIR_IN else "sent", created_at=t, meta=meta)  # fmt: skip
+        s.add(m)
+        out.append(m)
+        if direction == DIR_IN:
+            conv.last_inbound_at, conv.window_expires_at = t, t + timedelta(hours=WINDOW_HOURS)
+        conv.last_message_at, conv.last_preview = t, text[:200]
+    await s.flush()
+    return out
+
+
+async def programme(s, agent, siti, budi, dewi, dewi_conv, andi, andi_conv) -> None:
+    """Patients board, reminders, a screening, tasks, saved replies, labels, KB gaps."""
+    today = local_today()
+    titles = [t for _, t in BUTTONS]
+
+    # Patient journey
+    siti.journey_stage, siti.treatment_start = "treatment", today - timedelta(days=70)
+    siti.puskesmas, siti.reminder_enabled, siti.reminder_time = "Puskesmas Menteng", True, "07:00"
+    budi.journey_stage, budi.treatment_start = "treatment", today - timedelta(days=20)
+    budi.puskesmas, budi.reminder_enabled, budi.reminder_time = "Puskesmas Tebet", True, "19:00"
+    dewi.journey_stage, dewi.treatment_start = "treatment", today - timedelta(days=118)
+    dewi.puskesmas = "Puskesmas Cilandak"
+    andi.journey_stage, andi.puskesmas = "testing", "Puskesmas Menteng"
+    for c in (siti, dewi, andi):
+        c.kader_id = agent.id if agent else None
+    for name, stage, start, pkm in [
+        ("Hendra Gunawan", "completed", today - timedelta(days=200), "Puskesmas Tebet"),
+        ("Sri Wahyuni", "lost", today - timedelta(days=95), "Puskesmas Cilandak"),
+    ]:
+        s.add(Contact(display_name=name, journey_stage=stage, treatment_start=start, puskesmas=pkm))
+
+    # Two weeks of reminder answers (Siti: one slip; Budi: a shaky first month)
+    siti_conv = (
+        (await s.execute(select(Conversation).where(Conversation.contact_id == siti.id)))
+        .scalars()
+        .first()
+    )
+    budi_conv = (
+        (await s.execute(select(Conversation).where(Conversation.contact_id == budi.id)))
+        .scalars()
+        .first()
+    )
+    for back in range(1, 15):
+        day = today - timedelta(days=back)
+        st = "missed" if back == 6 else "taken"
+        s.add(DoseLog(contact_id=siti.id, day=day, status=st, conversation_id=siti_conv.id,
+                      sent_at=local_at(day, 7), answered_at=local_at(day, 7, 12)))  # fmt: skip
+        if back <= 7:
+            st = "missed" if back in (2, 5) else "taken"
+            s.add(DoseLog(contact_id=budi.id, day=day, status=st, conversation_id=budi_conv.id,
+                          sent_at=local_at(day, 19), answered_at=local_at(day, 19, 20)))  # fmt: skip
+    # Yesterday's reminder in Siti's chat
+    await add_turns(s, siti_conv, local_at(today - timedelta(days=1), 7), [
+        (DIR_OUT, "bot", "Halo Siti 👋 Sudah minum obat TBC hari ini?", {"reminder": "1", "buttons": titles}),
+        (DIR_IN, "user", "Sudah ✅", {}),
+        (DIR_OUT, "bot", DEFAULTS["reminder_taken_id"].replace("{nama}", "Siti"), {"dose": "taken"}),
+    ])  # fmt: skip
+    if agent:
+        s.add(Message(conversation_id=siti_conv.id, direction=DIR_NOTE, sender_type="agent",
+                      sender_staff_id=agent.id, status="sent",
+                      text="PMO: suami. Kontrol berikutnya Senin depan.",
+                      created_at=local_at(today - timedelta(days=1), 9)))  # fmt: skip
+
+    # A finished screening that suggests testing
+    spec = screening.spec()
+    yusuf, yusuf_conv, _ = await thread(s, "Yusuf Hidayat", "whatsapp", "sim-demo-yusuf", [
+        (DIR_IN, "user", "SKRINING"),
+        (DIR_OUT, "bot", DEFAULTS["consent_notice_id"]),
+    ], ago_hours=4)  # fmt: skip
+    answers = {"cough_2w": True, "fever": True, "night_sweats": False, "weight_loss": True,
+               "contact": False}  # fmt: skip
+    sc = ScreeningSession(contact_id=yusuf.id, conversation_id=yusuf_conv.id, lang="id",
+                          step=len(spec.questions), answers=answers, status="done",
+                          result="presumptive", started_at=utcnow() - timedelta(hours=4),
+                          finished_at=utcnow() - timedelta(hours=3, minutes=50))  # fmt: skip
+    s.add(sc)
+    await s.flush()
+    turns = [(DIR_OUT, "bot", spec.text("intro", "id").replace("{n}", str(len(spec.questions))),
+              {"screening": sc.id})]  # fmt: skip
+    for i, q in enumerate(spec.questions):
+        turns.append((DIR_OUT, "bot", f"({i + 1}/{len(spec.questions)}) {q['text_id']}",
+                      {"screening": sc.id, "question": q["id"], "buttons": ["Ya", "Tidak"]}))  # fmt: skip
+        turns.append((DIR_IN, "user", "Ya" if answers[q["id"]] else "Tidak", {}))
+    turns.append((DIR_OUT, "bot", spec.text("result_positive", "id"),
+                  {"screening": sc.id, "result": "presumptive"}))  # fmt: skip
+    await add_turns(s, yusuf_conv, utcnow() - timedelta(hours=3, minutes=58), turns)
+    yusuf.journey_stage = "suspect"
+
+    # Tasks: one overdue, one for today, one from the screening
+    kader = agent.id if agent else None
+    s.add_all([
+        Task(contact_id=andi.id, kind="call", title="Hubungi Andi: pastikan sudah ke IGD / puskesmas",
+             due=today - timedelta(days=1), assigned_to=kader),
+        Task(contact_id=dewi.id, kind="visit", title="Kunjungan rumah Bu Dewi: antar obat, cek PMO",
+             due=today, assigned_to=kader),
+        Task(contact_id=yusuf.id, kind="call", source="screening",
+             title="Skrining TBC: Yusuf Hidayat disarankan periksa", assigned_to=kader),
+    ])  # fmt: skip
+
+    # Saved replies and labels
+    for shortcut, title, body in [
+        (
+            "jadwal",
+            "Jadwal kontrol",
+            "Halo {nama}, jadwal kontrol berikutnya di puskesmas hari Senin pukul 08.00. "
+            "Jangan lupa bawa kartu berobat ya 🙏",
+        ),
+        (
+            "pmo",
+            "Tentang PMO",
+            "PMO (Pengawas Menelan Obat) adalah orang dekat yang membantu mengingatkan minum obat "
+            "setiap hari. Bisa keluarga, teman, atau kader. Kakak sudah punya PMO?",
+        ),
+        (
+            "terimakasih",
+            "Terima kasih",
+            "Terima kasih sudah menghubungi kami, {nama}. Semangat terus berobatnya ya 💪",
+        ),
+    ]:
+        s.add(SavedReply(shortcut=shortcut, title=title, body=body))
+    call, visit = Label(name="Perlu telepon"), Label(name="Kunjungan rumah")
+    s.add_all([call, visit, Label(name="Pasien baru")])
+    await s.flush()
+    s.add_all([
+        ConversationLabel(conversation_id=andi_conv.id, label_id=call.id),
+        ConversationLabel(conversation_id=dewi_conv.id, label_id=visit.id),
+    ])  # fmt: skip
+
+    # Questions the knowledge base didn't cover
+    s.add_all([
+        KbGap(question="Apakah yayasan menyediakan bantuan uang transport ke puskesmas?",
+              conversation_id=dewi_conv.id, created_at=utcnow() - timedelta(hours=20)),
+        KbGap(question="Apakah boleh berpuasa saat minum obat TBC?",
+              created_at=utcnow() - timedelta(hours=5)),
+    ])  # fmt: skip
+
+    # Medication reminders on (master switch in Settings)
+    if await s.get(Setting, "reminder_enabled") is None:
+        s.add(Setting(key="reminder_enabled", value=True))
 
 
 if __name__ == "__main__":
