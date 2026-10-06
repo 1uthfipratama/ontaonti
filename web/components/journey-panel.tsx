@@ -5,6 +5,7 @@ import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
 
+import { DateField, TimeField } from "@/components/date-time-field";
 import { NativeSelect } from "@/components/native-select";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -140,12 +141,12 @@ export function JourneyPanel({ contact: c }: { contact: Contact }) {
         <>
           {onTreatment && (
             <Row label={t("journey.start")}>
-              <Input
-                type="date"
+              <DateField
+                aria-label={t("journey.start")}
                 disabled={!canAct}
                 className="h-8 w-40"
                 value={c.treatment_start ?? ""}
-                onChange={(e) => e.target.value && save({ treatment_start: e.target.value })}
+                onChange={(v) => v && save({ treatment_start: v })}
               />
             </Row>
           )}
@@ -183,12 +184,12 @@ export function JourneyPanel({ contact: c }: { contact: Contact }) {
             <>
               <Row label={t("journey.reminder")}>
                 {c.reminder_enabled && (
-                  <Input
-                    type="time"
+                  <TimeField
+                    aria-label={t("journey.reminder")}
                     disabled={!canAct}
-                    className="mr-2 h-8 w-[7.5rem]"
+                    className="mr-2 h-8 w-24"
                     value={c.reminder_time}
-                    onChange={(e) => e.target.value && save({ reminder_time: e.target.value })}
+                    onChange={(v) => save({ reminder_time: v })}
                   />
                 )}
                 <Switch

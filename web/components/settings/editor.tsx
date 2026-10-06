@@ -4,6 +4,7 @@ import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
 
+import { TimeField } from "@/components/date-time-field";
 import { NativeSelect } from "@/components/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,7 +129,7 @@ export function SettingsEditor({ only }: { only?: string[] }) {
         return <Switch id={f.key} checked={Boolean(v)} onCheckedChange={(x) => set(f.key, x)} />;
       case "time":
         return (
-          <Input id={f.key} type="time" className="max-w-36" value={String(v)} onChange={(e) => set(f.key, e.target.value)} />
+          <TimeField aria-label={f.label} className="w-28" value={String(v)} onChange={(x) => set(f.key, x)} />
         );
       case "days": {
         const on = new Set((v as number[]) ?? []);

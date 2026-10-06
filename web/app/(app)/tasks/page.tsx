@@ -7,6 +7,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
 import { Check, Home, MoreHorizontal, Phone } from "lucide-react";
 
+import { DateField } from "@/components/date-time-field";
 import { NativeSelect } from "@/components/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +63,7 @@ function NewTask() {
         onChange={(e) => setForm({ ...form, kind: e.target.value })}
         options={(["call", "visit", "other"] as const).map((k) => ({ value: k, label: t(`tasks.kind.${k}`) }))}
       />
-      <Input type="date" aria-label={t("tasks.due")} className="w-40" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} />
+      <DateField aria-label={t("tasks.due")} className="w-40" placeholder={t("tasks.noDate")} value={form.due} onChange={(v) => setForm({ ...form, due: v })} />
       <NativeSelect
         aria-label={t("tasks.assignee")}
         value={form.assigned_to}
