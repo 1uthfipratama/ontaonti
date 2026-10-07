@@ -1,12 +1,13 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
-import { Check, Loader2, Trash2 } from "lucide-react";
+import { Check, FileText, Loader2, Trash2, Upload, X } from "lucide-react";
 
+import { mediaSrc } from "@/components/message-media";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -17,7 +18,16 @@ import { useT } from "@/lib/i18n";
 import { useCanAct, useStaff } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-type ArticleRow = { id: number; doc_id: string; title: string; published: boolean; updated_at: string };
+type ArticleRow = {
+  id: number;
+  doc_id: string;
+  title: string;
+  published: boolean;
+  updated_at: string;
+  source_name: string;
+  source_url: string | null;
+};
+type Report = { pages: number; sections: number; words: number; warnings: string[] };
 type Article = ArticleRow & { body: string };
 type Status = { state: string; error?: string; published_at: string | null; pending: boolean; open_gaps: number };
 type Gap = { id: number; question: string; conversation_id: number | null; created_at: string };
@@ -55,7 +65,17 @@ function PublishBar({ status }: { status: Status }) {
   );
 }
 
-function Editor({ id, onDone }: { id: number | "new"; onDone: (id: number | null) => void }) {
+function Editor({
+  id,
+  onDone,
+  report,
+  onDismissReport,
+}: {
+  id: number | "new";
+  onDone: (id: number | null) => void;
+  report?: Report | null;
+  onDismissReport?: () => void;
+}) {
   const t = useT();
   const { mutate } = useSWRConfig();
   const admin = useStaff().role === "admin";
@@ -104,6 +124,18 @@ function Editor({ id, onDone }: { id: number | "new"; onDone: (id: number | null
           className="h-9 flex-1 border-transparent px-0 text-[15px] font-semibold shadow-none focus-visible:border-transparent focus-visible:shadow-none"
           data-testid="kb-title"
         />
+        {data?.source_url && (
+          <a
+            href={mediaSrc({ media_url: data.source_url }) ?? "#"}
+            target="_blank"
+            rel="noreferrer"
+            title={data.source_name}
+            className="inline-flex max-w-48 items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+          >
+            <FileText className="size-3.5 shrink-0" />
+            <span className="truncate">{data.source_name}</span>
+          </a>
+        )}
         {data && <span className="font-mono text-xs text-subtle-foreground">{data.doc_id}</span>}
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           {t("kb.visible")}
@@ -114,6 +146,21 @@ function Editor({ id, onDone }: { id: number | "new"; onDone: (id: number | null
           />
         </label>
       </div>
+      {report && (
+        <div className="flex items-start gap-3 border-b border-border bg-accent/60 px-6 py-2.5 text-sm" data-testid="kb-report">
+          <div className="flex-1">
+            <div>{t("kb.imported", { sections: report.sections, words: report.words.toLocaleString("id-ID") })}</div>
+            {report.warnings.map((w) => (
+              <div key={w} className="text-xs text-muted-foreground">
+                {t(`kb.warn.${w}`) === `kb.warn.${w}` ? w : t(`kb.warn.${w}`)}
+              </div>
+            ))}
+          </div>
+          <button onClick={onDismissReport} aria-label={t("common.close")} className="rounded p-0.5 text-muted-foreground hover:bg-muted">
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
       <Textarea
         value={a.body}
         onChange={(e) => setDraft({ ...draft, body: e.target.value })}
@@ -142,8 +189,28 @@ function Articles() {
   const t = useT();
   const admin = useStaff().role === "admin";
   const { data } = useSWR<ArticleRow[]>("/kb/articles");
+  const { mutate } = useSWRConfig();
   const [selected, setSelected] = useState<number | "new" | null>(null);
+  const [report, setReport] = useState<{ id: number; report: Report } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
   const current = selected ?? data?.[0]?.id ?? null;
+
+  async function upload(file: File) {
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const r = await api<{ article: ArticleRow; report: Report }>("/kb/upload", { form });
+      await mutate((k) => typeof k === "string" && k.startsWith("/kb"));
+      setSelected(r.article.id);
+      setReport({ id: r.article.id, report: r.report });
+    } catch (e) {
+      toast.error(errorMessage(e, t));
+    } finally {
+      setUploading(false);
+    }
+  }
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[17rem_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]">
       <div className="overflow-y-auto border-r border-border bg-card p-2">
@@ -154,6 +221,31 @@ function Articles() {
           >
             + {t("kb.new")}
           </button>
+        )}
+        {admin && (
+          <>
+            <input
+              ref={picker}
+              type="file"
+              hidden
+              accept=".pdf,.docx,.txt,.md"
+              data-testid="kb-upload-input"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) upload(f);
+                e.target.value = "";
+              }}
+            />
+            <button
+              onClick={() => picker.current?.click()}
+              disabled={uploading}
+              title={t("kb.uploadHint")}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-primary hover:bg-muted disabled:opacity-60"
+            >
+              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+              {uploading ? t("kb.reading") : t("kb.upload")}
+            </button>
+          </>
         )}
         {data?.map((a) => (
           <button
@@ -170,7 +262,15 @@ function Articles() {
           </button>
         ))}
       </div>
-      {current !== null && <Editor key={current} id={current} onDone={(id) => setSelected(id)} />}
+      {current !== null && (
+        <Editor
+          key={current}
+          id={current}
+          onDone={(id) => setSelected(id)}
+          report={report?.id === current ? report.report : null}
+          onDismissReport={() => setReport(null)}
+        />
+      )}
     </div>
   );
 }

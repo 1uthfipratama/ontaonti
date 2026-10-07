@@ -405,6 +405,9 @@ class KbArticle(Base):
     title: Mapped[str] = mapped_column(String(200))
     body: Mapped[str] = mapped_column(Text, default="")  # Markdown: intro, then "## " sections
     published: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Uploaded documents keep their original file ("media:<name>") for reference.
+    source_name: Mapped[str] = mapped_column(String(200), default="")
+    source_file: Mapped[str | None] = mapped_column(String(80))
     updated_by: Mapped[int | None] = mapped_column(
         ForeignKey("staff_users.id", ondelete="SET NULL")
     )

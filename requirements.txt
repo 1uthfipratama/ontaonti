@@ -22,6 +22,9 @@ fastembed==0.8.1
 sqlite-vec==0.1.9
 tokenizers==0.23.2
 numpy==2.5.3
+# Knowledge-base document uploads (app/services/doc_parser.py)
+pymupdf==1.28.2
+python-docx==1.2.0
 # Voice-note transcription (TRANSCRIBE_PROVIDER=local)
 faster-whisper==1.2.1
 # faster-whisper 1.2.1 passes metadata_errors to av.open(), removed after PyAV 17

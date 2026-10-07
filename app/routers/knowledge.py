@@ -1,9 +1,11 @@
 """Knowledge page: edit the bot's articles, publish them, review unanswered questions."""
 
+import asyncio
+import mimetypes
 import re
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -15,7 +17,7 @@ from app.db import get_session, utcnow
 from app.deps import admin_only, any_staff, can_act, client_ip
 from app.models import KbArticle, KbGap, StaffUser
 from app.serializers import iso
-from app.services import knowledge
+from app.services import doc_parser, knowledge, media
 
 router = APIRouter(prefix="/kb", tags=["knowledge"])
 
@@ -27,6 +29,8 @@ def _article(a: KbArticle, full: bool = True) -> dict:
         "title": a.title,
         "published": a.published,
         "updated_at": iso(a.updated_at),
+        "source_name": a.source_name,
+        "source_url": a.source_file,
     }
     if full:
         out["body"] = a.body
@@ -35,7 +39,7 @@ def _article(a: KbArticle, full: bool = True) -> dict:
 
 class ArticleIn(BaseModel):
     title: str = Field(min_length=1, max_length=200)
-    body: str = Field(default="", max_length=50_000)
+    body: str = Field(default="", max_length=1_000_000)  # whole guidelines fit
     published: bool = True
 
 
@@ -85,6 +89,38 @@ async def create_article(
     audit(session, user, "kb.create", "kb_article", a.id, {"doc_id": a.doc_id}, client_ip(request))
     await session.commit()
     return _article(a)
+
+
+@router.post("/upload")
+async def upload_document(
+    request: Request,
+    file: UploadFile = File(...),
+    user: StaffUser = Depends(admin_only),
+    session: AsyncSession = Depends(get_session),
+):
+    """PDF / Word / text -> a hidden draft article for staff to check, then publish."""
+    name = (file.filename or "dokumen").replace("/", "_").replace("\\", "_")[:200]
+    data = await file.read(doc_parser.MAX_MB * 1024 * 1024 + 1)
+    try:
+        parsed = await asyncio.to_thread(doc_parser.parse, data, name)
+    except doc_parser.ParseError as e:
+        raise HTTPException(422, str(e)) from e
+    await knowledge.ensure_imported(session)
+    mime = mimetypes.guess_type(name)[0] or "application/octet-stream"
+    a = KbArticle(doc_id=await _next_doc_id(session), title=parsed.title, body=parsed.markdown,
+                  published=False, source_name=name, source_file=media.save(data, mime, name),
+                  updated_by=user.id)  # fmt: skip
+    session.add(a)
+    await session.flush()
+    await knowledge.mark_edited(session)
+    audit(session, user, "kb.upload", "kb_article", a.id,
+          {"file": name, "words": parsed.words}, client_ip(request))  # fmt: skip
+    await session.commit()
+    return {
+        "article": _article(a, full=False),
+        "report": {"pages": parsed.pages, "sections": parsed.sections, "words": parsed.words,
+                   "warnings": parsed.warnings},
+    }  # fmt: skip
 
 
 @router.put("/articles/{article_id}")

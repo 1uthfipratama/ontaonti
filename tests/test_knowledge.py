@@ -97,3 +97,39 @@ async def test_answered_question_is_not_a_gap(admin):
     bot = [m for m in await thread(admin, out["conversation_id"]) if m["sender_type"] == "bot"]
     assert bot[-1]["meta"]["unanswered"] is False
     assert (await admin.get("/kb/gaps")).json() == []
+
+
+async def test_upload_document_becomes_a_hidden_draft(admin, built):
+    from tests.test_doc_parser import make_docx
+
+    r = await admin.post(
+        "/kb/upload",
+        files={"file": ("SOP Kader.docx", make_docx(), "application/octet-stream")},
+    )
+    assert r.status_code == 200, r.text
+    art, report = r.json()["article"], r.json()["report"]
+    assert art["title"] == "SOP Pendampingan Pasien" and art["published"] is False
+    assert art["source_name"] == "SOP Kader.docx" and art["source_url"].startswith("media:")
+    assert report["sections"] == 2 and report["words"] > 20
+    full = (await admin.get(f"/kb/articles/{art['id']}")).json()
+    assert "## Kunjungan rumah" in full["body"]
+    src = await admin.get("/media/" + art["source_url"].removeprefix("media:"))
+    assert src.status_code == 200 and src.content[:2] == b"PK"  # the original .docx
+    assert (await admin.get("/kb/status")).json()["pending"] is True
+    # Hidden until staff switch it on: publishing leaves it out of the bot's index.
+    await admin.post("/kb/publish")
+    await queue.drain()
+    assert not any("sop-pendampingan" in n for n in built[0])
+
+
+async def test_upload_rejects_bad_files(admin, client):
+    bad = await admin.post("/kb/upload", files={"file": ("foto.jpg", b"\xff\xd8", "image/jpeg")})
+    assert bad.status_code == 422 and "PDF, Word" in bad.json()["detail"]
+    await admin.post("/staff", json={"email": "ag@test.local", "role": "agent",
+                                     "password": "agent-pass-123"})  # fmt: skip
+    await client.post("/auth/logout")
+    await client.post("/auth/login", json={"email": "ag@test.local", "password": "agent-pass-123"})
+    r = await client.post(
+        "/kb/upload", files={"file": ("a.txt", b"Halo semua TBC itu bisa sembuh", "text/plain")}
+    )
+    assert r.status_code == 403
